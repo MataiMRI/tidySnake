@@ -14,7 +14,7 @@ cd /nesi/project/PROJECTID/$USER
 git clone https://github.com/MataiMRI/tidySnake.git
 ```
 
-where `PROJECTID` is your project number (e.g. `uoa03264`).
+where `PROJECTID` is your project number (e.g. `uoaXXXXX`).
 
 *Note: you only need to do the cloning step once.*
 

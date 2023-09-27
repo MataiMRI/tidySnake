@@ -1,3 +1,5 @@
+configfile: 'config/config.yaml'
+
 from pathlib import Path
 
 def list_scans(root_folder, prefix):
@@ -56,7 +58,7 @@ rule tidy_dicoms:
             target_folder.mkdir(parents=True, exist_ok=True)
             (target_folder / dicom_file.name).symlink_to(dicom_file)
 
-rules heudiconv:
+rule heudiconv:
     input:
         "{resultsdir}/tidy/sub_{subject}/ses_{session}"
     output:
@@ -98,10 +100,17 @@ rule bids_template:
         "--heuristic {config[heudiconv][heuristic]} "
         "--command populate-templates"
 
+rule mriqc_workdir:
+    output:
+        temp(directory("{resultsdir}/mriqc_tmp"))
+    shell:
+        "mkdir -p {output}"
+
 rule mriqc:
     input:
         "{resultsdir}/bids/dataset_description.json",
-        "{resultsdir}/bids/sub-{subject}/ses-{session}"
+        "{resultsdir}/bids/sub-{subject}/ses-{session}",
+        workdir="{resultsdir}/mriqc_tmp",
     output:
         directory("{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}")
     container:
@@ -121,4 +130,4 @@ rule mriqc:
         "--mem-gb {params.mem_gb} "
         "--nprocs {threads} "
         "--no-sub "
-        "-w {wildcards.resultsdir}/work"
+        "-w {input.workdir}"

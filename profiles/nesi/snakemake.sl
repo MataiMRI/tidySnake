@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # load environment modules
-module purge
+module purge 2> /dev/null
 module load Apptainer/1.2.2 snakemake/7.32.3-gimkl-2022a-Python-3.11.3
 
 # parent folder for cache directories
