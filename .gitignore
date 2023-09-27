@@ -1,5 +1,6 @@
 .snakemake
 .ipynb_checkpoints
-__pycache__
+.cache
+.afni.log
 logs
 config/config.yaml
