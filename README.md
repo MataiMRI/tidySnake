@@ -73,12 +73,6 @@ View steps within workflow using rulegraph:
 snakemake --forceall --rulegraph | dot -Tpdf > rulegraph.pdf
 ```
 
-Use the [*local* profile](profiles/local/config.yaml), presetting many options to run the workflow locally:
-
-```
-snakemake --profile profiles/local
-```
-
 Inform `snakemake` of the maximum amount of memory available on the workstation:
 
 ```
