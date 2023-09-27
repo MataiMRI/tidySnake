@@ -50,7 +50,7 @@ rule tidy_dicoms:
     input:
         lambda wildards: MAPPING[(wildards.subject, wildards.session)]
     output:
-        directory("{resultsdir}/tidy/sub_{subject}/ses_{session}")
+        temp(directory("{resultsdir}/tidy/sub_{subject}/ses_{session}"))
     run:
         output_folder = Path(output[0])
         for dicom_file in Path(input[0]).rglob("*.dcm"):
@@ -101,6 +101,7 @@ rule bids_template:
         "--command populate-templates"
 
 rule mriqc_workdir:
+    localrule: True
     output:
         temp(directory("{resultsdir}/mriqc_tmp"))
     shell:

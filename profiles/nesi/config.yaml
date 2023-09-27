@@ -1,5 +1,4 @@
 cluster:
-    mkdir -p logs &&
     sbatch
         --parsable
         --partition {resources.partition}
