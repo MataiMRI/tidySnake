@@ -1,0 +1,5 @@
+.snakemake
+.ipynb_checkpoints
+__pycache__
+logs
+config/config.yaml

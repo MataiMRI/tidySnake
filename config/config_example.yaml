@@ -1,0 +1,14 @@
+ethics_prefix: "ETHICS_PREFIX_"  # TODO document
+datadir: "DICOM_FOLDER"  # TODO document
+resultsdir: "RESULTS_FOLDER"  # TODO document
+
+heudiconv:
+    heuristic: "HEURISTIC_SCRIPT.py"  # TODO document
+    threads: 2
+    mem_mb: 4000
+    time_min: 60
+
+mriqc:
+    mem_mb: 16000
+    time_min: 120
+    threads: 8
