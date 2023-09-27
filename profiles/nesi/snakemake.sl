@@ -13,7 +13,7 @@ set -euo pipefail
 
 # load environment modules
 module purge
-module load Apptainer/1.1.9 snakemake/7.26.0-gimkl-2022a-Python-3.11.3
+module load Apptainer/1.2.2 snakemake/7.32.3-gimkl-2022a-Python-3.11.3
 
 # parent folder for cache directories
 NOBACKUPDIR="/nesi/nobackup/$SLURM_JOB_ACCOUNT/$USER"
