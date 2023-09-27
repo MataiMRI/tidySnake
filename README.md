@@ -20,7 +20,14 @@ Clone this repository using:
 git clone https://github.com/MataiMRI/tidySnake.git
 ```
 
-Then edit the configuration file `config/config.yml`, setting the following entries:
+Then copy the configuration file `config/config_example.yml` into `config/config.yaml`:
+
+```
+cd tidySnake
+cp config/config_example.yml config/config.yaml
+```
+
+and set the following entries:
 
 - the ethics prefix `ethics_prefix` for your input files,
 - the input data folder `datadir`,
@@ -40,7 +47,7 @@ Use a dry-run to check that installation and configuration is working:
 snakemake -n
 ```
 
-TODO see snakemake section for more info
+See the [Snakemake options](README.md#Useful-Snakemake-options) section for other useful options.
 
 
 ## Formats
@@ -57,7 +64,35 @@ The workflow assumes that input scan data are:
 Within a input folder (or .zip file), only the parent folder of DICOM files will be kept when tidying the data.
 Any other level of nesting will be ignored.
 
-TODO output
+TODO describe output format
+
+```
+RESULTS_FOLDER/
+└── bids/
+    ├── derivatives/
+    │   ├── mriqc/
+    │   │   ├── logs/
+    │   │   ├── sub-SUBJECT/
+    │   │   │   └── ses-SESSION/
+    │   │   │       └── anat/
+    │   │   │           └── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.json
+    │   │   ├── dataset_description.json
+    │   │   └── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.html
+    │   └── qc_status/
+    │       └── sub-SUBJECT_ses-SESSION_run-RUNID_qc.yaml
+    ├── sub-SUBJECT/
+    │   └── ses-SESSION/
+    │       ├── anat/
+    │       │   ├── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.json
+    │       │   └── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.nii.gz
+    │       ├── OTHER_MODALITY/
+    │       │   └── ...
+    │       └── sub-SUBJECT_ses-SESSION_scans.tsv
+    ├── CHANGES
+    ├── dataset_description.json
+    ├── README
+    └── scans.json
+```
 
 
 ## Workflow
