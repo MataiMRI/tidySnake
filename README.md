@@ -10,7 +10,6 @@ It is meant to handle DICOM to BIDs convertion as well as simple quality control
 
 To run this workflow on your workstation, you need to install the following softwares:
 
-- `mamba`, a fast cross-platform package manager (see [installation instructions](https://mamba.readthedocs.io/en/latest/installation.htm))
 - `apptainer`, a container system (see [installation instructions](https://apptainer.org/docs/admin/main/installation.html))
 - `snakemake`, the workflow management system (see [installation instructions](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html))
 - `git`, the distributed version control system (see [download page](https://git-scm.com/downloads))
