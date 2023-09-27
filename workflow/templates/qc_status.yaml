@@ -1,0 +1,3 @@
+func_qc: False
+anat_qc: False
+anat_template: sub-{{ wildcards.subject }}_ses-{{ wildcards.session }}_{{ wildcards.entity }}

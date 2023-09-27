@@ -171,9 +171,11 @@ rule mriqc:
         "-w {input.workdir}"
 
 rule qc_status:
+    localrule: True
     input:
-        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}"
+        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}",
+        template=workflow.source_path("templates/qc_status.yaml")
     output:
         "{resultsdir}/bids/derivatives/qc_status/sub-{subject}_ses-{session}_{entity}_qc.yaml"
-    shell:
-        "touch {output}"
+    template_engine:
+        "jinja2"
