@@ -63,7 +63,7 @@ rule all:
     input:
         expand(
             expand(
-                "{{resultsdir}}/bids/sub-{subject}/ses-{session}",
+                "{{resultsdir}}/bids/derivatives/mriqc/sub-{subject}/ses-{session}",
                 zip,
                 subject=SUBJECTS,
                 session=SESSIONS,
