@@ -25,18 +25,52 @@ def list_scans(root_folder, prefix):
 MAPPING = list_scans(config["datadir"], config["ethics_prefix"])
 SUBJECTS, SESSIONS = zip(*MAPPING)
 
+def get_qc_status_files(wildcards):
+    qc_files = []
+
+    for subject, session in zip(SUBJECTS, SESSIONS):
+        # create a dependency on heudiconv rule output
+        checkpoints.heudiconv.get(
+            session=session, subject=subject, resultsdir=config["resultsdir"]
+        )
+
+        # find all entities (e.g. runs) for a subject/session pair
+        bids_pattern = (
+            f"{config['resultsdir']}/bids/sub-{subject}/ses-{session}"
+            f"/anat/sub-{subject}_ses-{session}_{{entity}}_T1w.nii.gz"
+        )
+        entities, = glob_wildcards(bids_pattern)
+
+        # generate the list of QC status files
+        qc_file_pattern = (
+            "{resultsdir}/bids/derivatives/qc_status/"
+            "sub-{subject}_ses-{session}_{entity}_qc.yaml"
+        )
+        qc_file, = expand(
+            qc_file_pattern,
+            entity=entities,
+            session=session,
+            subject=subject,
+            resultsdir=config["resultsdir"]
+        )
+
+        qc_files.append(qc_file)
+
+    return qc_files
+
 rule all:
     localrule: True
     input:
         expand(
             expand(
-                "{{resultsdir}}/bids/derivatives/mriqc/sub-{subject}/ses-{session}",
+                "{{resultsdir}}/bids/sub-{subject}/ses-{session}",
                 zip,
                 subject=SUBJECTS,
                 session=SESSIONS,
             ),
             resultsdir=config["resultsdir"],
-        )
+        ),
+        get_qc_status_files
 
 rule unzip:
     input:
@@ -58,7 +92,7 @@ rule tidy_dicoms:
             target_folder.mkdir(parents=True, exist_ok=True)
             (target_folder / dicom_file.name).symlink_to(dicom_file)
 
-rule heudiconv:
+checkpoint heudiconv:
     input:
         "{resultsdir}/tidy/sub_{subject}/ses_{session}"
     output:
@@ -107,6 +141,9 @@ rule mriqc_workdir:
     shell:
         "mkdir -p {output}"
 
+# TODO avoid shared file "dataset_description.json" (use shadow rule?)
+# TODO parallelise each run/task output?
+# TODO allow additional parameters
 rule mriqc:
     input:
         "{resultsdir}/bids/dataset_description.json",
@@ -132,3 +169,11 @@ rule mriqc:
         "--nprocs {threads} "
         "--no-sub "
         "-w {input.workdir}"
+
+rule qc_status:
+    input:
+        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}"
+    output:
+        "{resultsdir}/bids/derivatives/qc_status/sub-{subject}_ses-{session}_{entity}_qc.yaml"
+    shell:
+        "touch {output}"
