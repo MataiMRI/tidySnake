@@ -70,7 +70,7 @@ rule heudiconv:
     resources:
         cpus=lambda wildcards, threads: threads,
         mem_mb=config["heudiconv"]["mem_mb"],
-        time_min=config["heudiconv"]["time_min"]
+        runtime=config["heudiconv"]["time_min"]
     shell:
         "heudiconv "
         "--dicom_dir_template '{wildcards.resultsdir}/tidy/sub_{{subject}}/ses_{{session}}/*/*' "

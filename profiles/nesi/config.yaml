@@ -4,7 +4,7 @@ cluster:
         --parsable
         --partition {resources.partition}
         --account {config[account]}
-        --time {resources.time_min}
+        --time {resources.runtime}
         --mem {resources.mem_mb}
         --cpus-per-task {resources.cpus}
         --gpus-per-node {resources.gpu}
@@ -17,7 +17,7 @@ default-resources:
     - cpus=1
     - gpu="0"
     - mem_mb=512
-    - time_min=5
+    - runtime=5
     - slurm_extra=""
 cluster-status: "slurm-status.py"
 cluster-sidecar: "slurm-sidecar.py"
