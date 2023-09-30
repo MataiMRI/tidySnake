@@ -25,10 +25,9 @@ def list_scans(root_folder, prefix):
 MAPPING = list_scans(config["datadir"], config["ethics_prefix"])
 SUBJECTS, SESSIONS = zip(*MAPPING)
 
-def get_qc_status_files(wildcards):
-    qc_files = []
+def qc_status_files(subject, session):
 
-    for subject, session in zip(SUBJECTS, SESSIONS):
+    def input_function(wildcards):
         # create a dependency on heudiconv rule output
         checkpoints.heudiconv.get(
             session=session, subject=subject, resultsdir=config["resultsdir"]
@@ -39,38 +38,33 @@ def get_qc_status_files(wildcards):
             f"{config['resultsdir']}/bids/sub-{subject}/ses-{session}"
             f"/anat/sub-{subject}_ses-{session}_{{entity}}_T1w.nii.gz"
         )
-        entities, = glob_wildcards(bids_pattern)
+        found_wildcards = glob_wildcards(bids_pattern)
 
         # generate the list of QC status files
-        qc_file_pattern = (
-            "{resultsdir}/bids/derivatives/qc_status/"
+        qc_files_pattern = (
+            "{resultsdir}/bids/derivatives/mriqc/"
             "sub-{subject}_ses-{session}_{entity}_qc.yaml"
         )
-        qc_file, = expand(
-            qc_file_pattern,
-            entity=entities,
+        qc_files = expand(
+            qc_files_pattern,
+            entity=found_wildcards.entity,
             session=session,
             subject=subject,
             resultsdir=config["resultsdir"]
         )
 
-        qc_files.append(qc_file)
+        return qc_files
 
-    return qc_files
+    return input_function
+
+QC_STATUS_FILES = [
+    qc_status_files(subject, session) for subject, session in zip(SUBJECTS, SESSIONS)
+]
 
 rule all:
     localrule: True
     input:
-        expand(
-            expand(
-                "{{resultsdir}}/bids/derivatives/mriqc/sub-{subject}/ses-{session}",
-                zip,
-                subject=SUBJECTS,
-                session=SESSIONS,
-            ),
-            resultsdir=config["resultsdir"],
-        ),
-        get_qc_status_files
+        QC_STATUS_FILES
 
 rule unzip:
     input:
@@ -141,41 +135,95 @@ rule mriqc_workdir:
     shell:
         "mkdir -p {output}"
 
+def get_task(wildcards):
+    entities = dict(entity.split("-") for entity in wildcards.entity.split("_"))
+    if "task" in entities:
+        flag = f"--task-id {entities['task']}"
+    else:
+        flag = ""
+    return flag
+
+def get_run(wildcards):
+    entities = dict(entity.split("-") for entity in wildcards.entity.split("_"))
+    if "run" in entities:
+        flag = f"--run-id {entities['run']}"
+    else:
+        flag = ""
+    return flag
+
 # TODO avoid shared file "dataset_description.json" (use shadow rule?)
 # TODO parallelise each run/task output?
 # TODO allow additional parameters
+# TODO increase verbosity to produce log files?
 rule mriqc:
     input:
         "{resultsdir}/bids/dataset_description.json",
         "{resultsdir}/bids/sub-{subject}/ses-{session}",
         workdir="{resultsdir}/mriqc_tmp",
     output:
-        directory("{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}")
+        #"{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}/{modality}/sub-{subject}_ses-{session}_{entity}_{suffix}.json",
+        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_{suffix}.html"
+    wildcard_constraints:
+        suffix="T1w|T2w|bold|dwi"
     container:
-        "docker://nipreps/mriqc:23.0.1"
+        "docker://nipreps/mriqc:23.1.0"
     resources:
         cpus=lambda wildcards, threads: threads,
         mem_mb=config["mriqc"]["mem_mb"],
         runtime=config["mriqc"]["time_min"]
     params:
-        mem_gb=int(config["mriqc"]["mem_mb"] / 1000)
+        mem_gb=int(config["mriqc"]["mem_mb"] / 1000),
+        run=get_run,
+        task=get_task,
     threads: config["mriqc"]["threads"]
     shell:
         "mriqc {wildcards.resultsdir}/bids {wildcards.resultsdir}/bids/derivatives/mriqc "
         "participant "
         "--participant-label {wildcards.subject} "
         "--session-id {wildcards.session} "
+        "--modalities {wildcards.suffix} "
         "--mem-gb {params.mem_gb} "
+        "{params.run} "
+        "{params.task} "
         "--nprocs {threads} "
         "--no-sub "
         "-w {input.workdir}"
 
+def mriqc_files(wildcards):
+    # create a dependency on heudiconv rule output
+    checkpoints.heudiconv.get(
+        session=wildcards.session,
+        subject=wildcards.subject,
+        resultsdir=wildcards.resultsdir
+    )
+
+    # find all entities (e.g. runs) and modalities for a subject/session pair
+    bids_pattern = (
+        f"{wildcards.resultsdir}/bids/sub-{wildcards.subject}/ses-{wildcards.session}"
+        f"/{{modality}}/sub-{wildcards.subject}_ses-{wildcards.session}_{{entity}}_{{suffix}}.nii.gz"
+    )
+    found_wildcards = glob_wildcards(bids_pattern)
+
+    # generate the list of MRIQC report files
+    # TODO only request T1, T2, dwi and bold
+    # TODO check what happens for same run/task but other entities being different
+    mriqc_pattern = (
+        f"{wildcards.resultsdir}/bids/derivatives/mriqc/"
+        f"sub-{wildcards.subject}_ses-{wildcards.session}_{{entity}}_{{suffix}}.html"
+    )
+    mriqc_files = expand(
+        mriqc_pattern, entity=found_wildcards.entity, suffix=found_wildcards.suffix
+    )
+
+    return mriqc_files
+
+# TODO generate template depending on available modalities
 rule qc_status:
     localrule: True
     input:
-        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}",
+        mriqc_files,
         template=workflow.source_path("templates/qc_status.yaml")
     output:
-        "{resultsdir}/bids/derivatives/qc_status/sub-{subject}_ses-{session}_{entity}_qc.yaml"
+        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_qc.yaml"
     template_engine:
         "jinja2"
