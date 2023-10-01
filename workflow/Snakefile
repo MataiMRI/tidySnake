@@ -1,6 +1,7 @@
 configfile: 'config/config.yaml'
 
 from pathlib import Path
+from itertools import chain
 
 def list_scans(root_folder, prefix):
     mapping = {}
@@ -64,6 +65,7 @@ QC_STATUS_FILES = [
 rule all:
     localrule: True
     input:
+        expand("{resultsdir}/.mriqc_completed", resultsdir=config["resultsdir"]),
         QC_STATUS_FILES
 
 rule unzip:
@@ -128,13 +130,6 @@ rule bids_template:
         "--heuristic {config[heudiconv][heuristic]} "
         "--command populate-templates"
 
-rule mriqc_workdir:
-    localrule: True
-    output:
-        temp(directory("{resultsdir}/mriqc_tmp"))
-    shell:
-        "mkdir -p {output}"
-
 def get_task(wildcards):
     entities = dict(entity.split("-") for entity in wildcards.entity.split("_"))
     if "task" in entities:
@@ -159,14 +154,14 @@ rule mriqc:
     input:
         "{resultsdir}/bids/dataset_description.json",
         "{resultsdir}/bids/sub-{subject}/ses-{session}",
-        workdir="{resultsdir}/mriqc_tmp",
     output:
         #"{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}/{modality}/sub-{subject}_ses-{session}_{entity}_{suffix}.json",
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_{suffix}.html"
     wildcard_constraints:
         suffix="T1w|T2w|bold|dwi"
     container:
-        "docker://nipreps/mriqc:23.1.0"
+        # "oras://ghcr.io/mataimri/mriqc_container:v1.0.0"
+        "docker://ghcr.io/mataimri/mriqc_container:v1.0.0"
     resources:
         cpus=lambda wildcards, threads: threads,
         mem_mb=config["mriqc"]["mem_mb"],
@@ -187,20 +182,17 @@ rule mriqc:
         "{params.task} "
         "--nprocs {threads} "
         "--no-sub "
-        "-w {input.workdir}"
+        "--work-dir {wildcards.resultsdir}/.mriqc_tmp"
 
-def mriqc_files(wildcards):
+def mriqc_files_(subject, session, resultsdir):
+
     # create a dependency on heudiconv rule output
-    checkpoints.heudiconv.get(
-        session=wildcards.session,
-        subject=wildcards.subject,
-        resultsdir=wildcards.resultsdir
-    )
+    checkpoints.heudiconv.get(session=session, subject=subject, resultsdir=resultsdir)
 
     # find all entities (e.g. runs) and modalities for a subject/session pair
     bids_pattern = (
-        f"{wildcards.resultsdir}/bids/sub-{wildcards.subject}/ses-{wildcards.session}"
-        f"/{{modality}}/sub-{wildcards.subject}_ses-{wildcards.session}_{{entity}}_{{suffix}}.nii.gz"
+        f"{resultsdir}/bids/sub-{subject}/ses-{session}"
+        f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.nii.gz"
     )
     found_wildcards = glob_wildcards(bids_pattern)
 
@@ -208,14 +200,33 @@ def mriqc_files(wildcards):
     # TODO only request T1, T2, dwi and bold
     # TODO check what happens for same run/task but other entities being different
     mriqc_pattern = (
-        f"{wildcards.resultsdir}/bids/derivatives/mriqc/"
-        f"sub-{wildcards.subject}_ses-{wildcards.session}_{{entity}}_{{suffix}}.html"
+        f"{resultsdir}/bids/derivatives/mriqc/"
+        f"sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.html"
     )
     mriqc_files = expand(
         mriqc_pattern, entity=found_wildcards.entity, suffix=found_wildcards.suffix
     )
 
     return mriqc_files
+
+def mriqc_files_all(wildcards):
+    files = chain.from_iterable(
+        mriqc_files_(subject, session, wildcards.resultsdir)
+        for subject, session in zip(SUBJECTS, SESSIONS)
+    )
+    return list(files)
+
+rule mriqc_cleanup:
+    localrule: True
+    input:
+        mriqc_files_all
+    output:
+        touch("{resultsdir}/.mriqc_completed")
+    shell:
+        "rm -rf {wildcards.resultsdir}/.mriqc_tmp"
+
+def mriqc_files(wildcards):
+    return mriqc_files_(wildcards.subject, wildcards.session, wildcards.resultsdir)
 
 # TODO generate template depending on available modalities
 rule qc_status:
