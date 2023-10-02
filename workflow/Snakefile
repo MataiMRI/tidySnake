@@ -147,7 +147,6 @@ def get_run(wildcards):
     return flag
 
 # TODO avoid shared file "dataset_description.json" (use shadow rule?)
-# TODO parallelise each run/task output?
 # TODO allow additional parameters
 # TODO increase verbosity to produce log files?
 rule mriqc:
@@ -183,6 +182,8 @@ rule mriqc:
         "--no-sub "
         "--work-dir {wildcards.resultsdir}/.mriqc_tmp"
 
+MRIQC_MODALITIES = ["T1w", "T2w", "bold", "dwi"]
+
 def mriqc_files_(subject, session, resultsdir):
 
     # create a dependency on heudiconv rule output
@@ -196,15 +197,15 @@ def mriqc_files_(subject, session, resultsdir):
     found_wildcards = glob_wildcards(bids_pattern)
 
     # generate the list of MRIQC report files
-    # TODO only request T1, T2, dwi and bold
     # TODO check what happens for same run/task but other entities being different
+    suffixes = [
+        suffix for suffix in found_wildcards.suffix if suffix in MRIQC_MODALITIES
+    ]
     mriqc_pattern = (
         f"{resultsdir}/bids/derivatives/mriqc/"
         f"sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.html"
     )
-    mriqc_files = expand(
-        mriqc_pattern, entity=found_wildcards.entity, suffix=found_wildcards.suffix
-    )
+    mriqc_files = expand(mriqc_pattern, entity=found_wildcards.entity, suffix=suffixes)
 
     return mriqc_files
 
