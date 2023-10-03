@@ -1,3 +1,6 @@
-func_qc: False
-anat_qc: False
-anat_template: sub-{{ wildcards.subject }}_ses-{{ wildcards.session }}_{{ wildcards.entity }}
+{% for suffix in params.suffixes -%}
+{{ suffix }}_qc: False  # replace with True if quality of {{ suffix }} is satisfying
+{% endfor -%}
+{% if "T1w" in params.suffixes or "T2w" in params.suffixes -%}
+anat_template: sub-{{ wildcards.subject }}_ses-{{ wildcards.session }}_{{ wildcards.entity }}  # template used for registration
+{% endif %}

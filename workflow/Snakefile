@@ -184,28 +184,37 @@ rule mriqc:
 
 MRIQC_MODALITIES = ["T1w", "T2w", "bold", "dwi"]
 
-def mriqc_files_(subject, session, resultsdir):
+def find_modalities(subject, session, resultsdir):
+    """find BIDS entities, including modalities, from BIDS data folder content"""
 
     # create a dependency on heudiconv rule output
     checkpoints.heudiconv.get(session=session, subject=subject, resultsdir=resultsdir)
 
     # find all entities (e.g. runs) and modalities for a subject/session pair
+    # TODO check what happens with multiple entities and one suffix
     bids_pattern = (
         f"{resultsdir}/bids/sub-{subject}/ses-{session}"
         f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.nii.gz"
     )
     found_wildcards = glob_wildcards(bids_pattern)
 
-    # generate the list of MRIQC report files
-    # TODO check what happens for same run/task but other entities being different
+    # keep only modalities supported by MRIQC
     suffixes = [
         suffix for suffix in found_wildcards.suffix if suffix in MRIQC_MODALITIES
     ]
+
+    return found_wildcards.entity, suffixes
+
+def mriqc_files_(subject, session, resultsdir):
+    """generate the list of MRIQC report files for a subject/session pair"""
+    # TODO check what happens for same run/task but other entities being different
+
+    entities, suffixes = find_modalities(subject, session, resultsdir)
     mriqc_pattern = (
         f"{resultsdir}/bids/derivatives/mriqc/"
         f"sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.html"
     )
-    mriqc_files = expand(mriqc_pattern, entity=found_wildcards.entity, suffix=suffixes)
+    mriqc_files = expand(mriqc_pattern, entity=entities, suffix=suffixes)
 
     return mriqc_files
 
@@ -236,5 +245,7 @@ rule qc_status:
         template=workflow.source_path("templates/qc_status.yaml")
     output:
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_qc.yaml"
+    params:
+        suffixes=lambda wildcards: find_modalities(wildcards.subject, wildcards.session, wildcards.resultsdir)[1]
     template_engine:
         "jinja2"
