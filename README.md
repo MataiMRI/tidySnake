@@ -55,7 +55,7 @@ See the [Snakemake options](README.md#Useful-Snakemake-options) section for othe
 The workflow assumes that input scan data are:
 
 - folders or .zip files (you can mix both),
-- stored in the `datadir` folder configured [`config/config.yml`](config/config.yml),
+- stored in the `datadir` folder configured `config/config.yml`,
 - they are named using the convention `<ethics_prefix>_<subject>_<session>`, where
 
   - `<ethics_prefix>` is set in [`config/config.yml`](config/config.yml),
