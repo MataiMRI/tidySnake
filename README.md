@@ -109,12 +109,36 @@ where
 - `<suffix>` is a BIDs suffix, either `T1w`, `T2w`, `dwi` or `bold`.
 
 The QC status files `sub-<subject>_ses-<session>_<entities>_qc.yaml` represent the evaluation of the data quality by a user, and are meant to be edited.
-By default, quality validation is set to false for all generated reports.
+By default, quality validation is set to false for all generated reports, for example:
+
+```yaml
+T1w_qc: False  # replace with True if quality of T1w is satisfying
+dwi_qc: False  # replace with True if quality of dwi is satisfying
+anat_template: sub-subject1_ses-session1_run-001  # template used for registration
+```
+
+*Note:
+The entry `anat_template` is only present if a T1w or T2w volume is available.
+It is meant to be used by other workflows to specify an alternative anatomical template for registration purpose (e.g. use another run).*
 
 
 ## Workflow
 
-TODO steps
+The complete workflow consists of multiple steps depicted in the following graph.
+
+![](rulegraph.png)
+
+The role of each step is the following:
+
+- `unzip`: uncompressed a set of input DICOM files provided as a .zip file,
+- `tidy_dicoms`: reorganise the DICOM files to ease BIDs conversion by HeuDiConv,
+- `heudiconv`: convert the DICOM files to NIfTI and organise then using the BIDs convention,
+- `bids_template`: generate generic template files to make the `bids` folder BIDS-compliant,
+- `mriqc`: produce quality control reports for each supported modality,
+- `mriqc_cleanup`: remove the work directory used by MRIQC,
+- `qc_status`: generate quality control files to be edited by user.
+
+When possible, each step is run independently for each run, task and session of a subject.
 
 
 ## Useful Snakemake options
