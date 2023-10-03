@@ -43,16 +43,10 @@ def qc_status_files(subject, session):
 
         # generate the list of QC status files
         qc_files_pattern = (
-            "{resultsdir}/bids/derivatives/mriqc/"
-            "sub-{subject}_ses-{session}_{entity}_qc.yaml"
+            f"{config['resultsdir']}/bids/derivatives/mriqc/"
+            f"sub-{subject}_ses-{session}_{{entity}}_qc.yaml"
         )
-        qc_files = expand(
-            qc_files_pattern,
-            entity=found_wildcards.entity,
-            session=session,
-            subject=subject,
-            resultsdir=config["resultsdir"]
-        )
+        qc_files = expand(qc_files_pattern, entity=found_wildcards.entity)
 
         return qc_files
 
@@ -65,14 +59,14 @@ QC_STATUS_FILES = [
 rule all:
     localrule: True
     input:
-        expand("{resultsdir}/.mriqc_completed", resultsdir=config["resultsdir"]),
+        f"{config['resultsdir']}/.mriqc_completed",
         QC_STATUS_FILES
 
 rule unzip:
     input:
-        expand("{datadir}/{{folder}}.zip", datadir=config['datadir'])
+        f"{config['datadir']}/{{folder}}.zip"
     output:
-        directory(expand("{datadir}/{{folder}}", datadir=config['datadir']))
+        directory(f"{config['datadir']}/{{folder}}")
     shell:
         "unzip -q -d {output} {input}"
 
