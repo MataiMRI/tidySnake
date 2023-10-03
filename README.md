@@ -32,7 +32,7 @@ and set the following entries:
 - the ethics prefix `ethics_prefix` for your input files,
 - the input data folder `datadir`,
 - the results folder `resultsdir`,
-- the path to your `heudiconv` heuristic script (`heuristic` entry under `heudiconv` section).
+- the path to your [HeuDiConv](https://heudiconv.readthedocs.io) heuristic script (`heuristic` entry under `heudiconv` section).
 
 You may want to edit other entries, in particular:
 
