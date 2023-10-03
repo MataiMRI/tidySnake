@@ -64,35 +64,52 @@ The workflow assumes that input scan data are:
 Within a input folder (or .zip file), only the parent folder of DICOM files will be kept when tidying the data.
 Any other level of nesting will be ignored.
 
-TODO describe output format
+Once the workflow has completed, results are organised as follows:
 
 ```
-RESULTS_FOLDER/
-└── bids/
-    ├── derivatives/
-    │   ├── mriqc/
-    │   │   ├── logs/
-    │   │   ├── sub-SUBJECT/
-    │   │   │   └── ses-SESSION/
-    │   │   │       └── anat/
-    │   │   │           └── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.json
-    │   │   ├── dataset_description.json
-    │   │   └── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.html
-    │   └── qc_status/
-    │       └── sub-SUBJECT_ses-SESSION_run-RUNID_qc.yaml
-    ├── sub-SUBJECT/
-    │   └── ses-SESSION/
-    │       ├── anat/
-    │       │   ├── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.json
-    │       │   └── sub-SUBJECT_ses-SESSION_run-RUNID_T1w.nii.gz
-    │       ├── OTHER_MODALITY/
-    │       │   └── ...
-    │       └── sub-SUBJECT_ses-SESSION_scans.tsv
+<resultsdir>
+└── bids
+    ├── derivatives
+    │   └── mriqc
+    │       ├── logs
+    │       │   └── ...  # log files in case MRIQC crashes
+    │       ├── sub-<subject>
+    │       │   ├── figures
+    │       │   │   ├── sub-<subject>_ses-<session>_<entities>_<suffix>.svg
+    │       │   │   └── ...
+    │       │   └── ses-<session>
+    │       │       ├── <modality>
+    │       │       │   └── sub-<subject>_ses-<session>_<entities>_<suffix>.json
+    │       │       └── ...
+    │       ├── dataset_description.json
+    │       ├── sub-<subject>_ses-<session>_<entities>_qc.yaml
+    │       ├── sub-<subject>_ses-<session>_<entities>_<suffix>.html
+    │       └── ...
+    ├── sub-<subject>
+    │   └── ses-<session>
+    │       ├── <modality>
+    │       │   ├── sub-<subject>_ses-<session>_<entities>_<suffix>.json
+    │       │   ├── sub-<subject>_ses-<session>_<entities>_<suffix>.nii.gz
+    │       │   └── ...
+    │       ├── ...
+    │       └── sub-<subject>_ses-<session>_scans.tsv
     ├── CHANGES
     ├── dataset_description.json
     ├── README
     └── scans.json
 ```
+
+where
+
+- `<resultsdir>` is the results directory configured in `config/config.yaml`
+- `<subject>` is a subject,
+- `<session>` is a subject's session,``
+- `<modality>` is a modality (e.g. `anat` or `dwi`),
+- `<entities>` are BIDs entities (`task`, `run`, etc.),
+- `<suffix>` is a BIDs suffix, either `T1w`, `T2w`, `dwi` or `bold`.
+
+The QC status files `sub-<subject>_ses-<session>_<entities>_qc.yaml` represent the evaluation of the data quality by a user, and are meant to be edited.
+By default, quality validation is set to false for all generated reports.
 
 
 ## Workflow
