@@ -78,10 +78,10 @@ If you use `sbatch` multiple times, the next execution of the workflow will only
 
 You can use all the usual snakemake command line options with `profiles/nesi/snakemake.sl`, by adding then at the end of your `srun` or `sbatch` command.
 
-For example, to run the workflow until the `freesurfer` rule, use:
+For example, to run the workflow until the `heudiconv` rule, use:
 
 ```
-sbatch --account=PROJECTID profiles/nesi/snakemake.sl --until bias_correction
+sbatch --account=PROJECTID profiles/nesi/snakemake.sl --until heudiconv
 ```
 
 See the [README](README.md#Useful-Snakemake-options) document for useful Snakemake options.
