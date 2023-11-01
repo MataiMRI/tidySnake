@@ -231,7 +231,6 @@ rule mriqc_cleanup:
 def mriqc_files(wildcards):
     return mriqc_files_(wildcards.subject, wildcards.session, wildcards.resultsdir)
 
-# TODO generate template depending on available modalities
 rule qc_status:
     localrule: True
     input:
