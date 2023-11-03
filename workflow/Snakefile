@@ -77,6 +77,8 @@ rule unzip:
         f"{config['datadir']}/{{folder}}.zip"
     output:
         directory(f"{config['datadir']}/{{folder}}")
+    wildcard_constraints:
+        folder="^((?!\.zip).)*$"  # avoid recursive .zip matching in folder name
     shell:
         "unzip -q -d {output} {input}"
 
