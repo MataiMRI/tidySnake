@@ -31,24 +31,32 @@ SUBJECTS, SESSIONS = zip(*MAPPING)
 def qc_status_files(subject, session):
 
     def input_function(wildcards):
+        # TODO document that run is a mandatory BIDS entity or handle when absent
+
         # create a dependency on heudiconv rule output
         checkpoints.heudiconv.get(
             session=session, subject=subject, resultsdir=config["resultsdir"]
         )
 
-        # find all entities (e.g. runs) for a subject/session pair
+        # find all entities (e.g. run and task) for a subject/session pair
         bids_pattern = (
             f"{config['resultsdir']}/bids/sub-{subject}/ses-{session}"
             f"/anat/sub-{subject}_ses-{session}_{{entity}}_T1w.nii.gz"
         )
         found_wildcards = glob_wildcards(bids_pattern)
 
+        # keep only the run entity
+        runs = []
+        for entities in found_wildcards.entity:
+            entities_map = dict(entity.split("-") for entity in entities.split("_"))
+            runs.append(entities_map["run"])
+
         # generate the list of QC status files
         qc_files_pattern = (
             f"{config['resultsdir']}/bids/derivatives/mriqc/"
-            f"sub-{subject}_ses-{session}_{{entity}}_qc.yaml"
+            f"sub-{subject}_ses-{session}_run-{{run}}_qc.yaml"
         )
-        qc_files = expand(qc_files_pattern, entity=found_wildcards.entity)
+        qc_files = expand(qc_files_pattern, run=runs)
 
         return qc_files
 
