@@ -6,6 +6,8 @@ from itertools import chain
 def list_scans(root_folder, prefix):
     mapping = {}
 
+    # TODO ensure that files/folders without prefix are not used
+    # TODO ensure that hidden files/folders are not used
     for path in Path(root_folder).iterdir():
         if not path.is_dir() and not path.suffix == ".zip":
             continue
