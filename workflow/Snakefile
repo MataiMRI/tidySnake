@@ -80,6 +80,12 @@ rule unzip:
     shell:
         "unzip -q -d {output} {input}"
 
+wildcard_constraints:
+    # Ensure proper matching in patterns containing "ses-{session}_{entity}",
+    # where {entity} can contain multiple BIDS entities. For example, in
+    # "ses-a_task-rest_run-001", session is "a" and entity is "task-rest_run-001"
+    session="[^-]"
+
 rule tidy_dicoms:
     input:
         lambda wildards: MAPPING[(wildards.subject, wildards.session)]
