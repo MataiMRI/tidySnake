@@ -226,7 +226,7 @@ def mriqc_files_(subject, session, resultsdir):
         f"{resultsdir}/bids/derivatives/mriqc/"
         f"sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.html"
     )
-    mriqc_files = expand(mriqc_pattern, entity=entities, suffix=suffixes)
+    mriqc_files = expand(mriqc_pattern, zip, entity=entities, suffix=suffixes)
 
     return mriqc_files
 
