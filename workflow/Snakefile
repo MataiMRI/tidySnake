@@ -34,6 +34,7 @@ rule all:
         f"{config['resultsdir']}/.mriqc_completed",
         expand(
             f"{config['resultsdir']}/bids/derivatives/mriqc/sub-{{subject}}_ses-{{session}}_qc.yaml",
+            zip,
             subject=SUBJECTS,
             session=SESSIONS
         )
