@@ -1,6 +1,9 @@
-{% for entity, suffix in params.modalities -%}
-{{ entity }}_{{ suffix }}: False  # replace with True if quality of {{ suffix }} for {{ entity }} is satisfying
-{% endfor -%}
 {% if params.anat_template -%}
-anat_template: {{ params.anat_template }}  # T1w template used for registration
-{% endif %}
+# anatomical template used for registration
+anat_template: {{ params.anat_template }}
+
+{% endif -%}
+# runs found for each modality, replace False value with True if quality is satisfying
+{% for entity, suffix in params.modalities -%}
+{{ entity }}_{{ suffix }}: False
+{% endfor -%}
