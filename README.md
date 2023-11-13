@@ -82,7 +82,7 @@ Once the workflow has completed, results are organised as follows:
     │       │       │   └── sub-<subject>_ses-<session>_<entities>_<suffix>.json
     │       │       └── ...
     │       ├── dataset_description.json
-    │       ├── sub-<subject>_ses-<session>_<entities>_qc.yaml
+    │       ├── sub-<subject>_ses-<session>_qc.yaml
     │       ├── sub-<subject>_ses-<session>_<entities>_<suffix>.html
     │       └── ...
     ├── sub-<subject>
@@ -108,17 +108,17 @@ where
 - `<entities>` are BIDs entities (`task`, `run`, etc.),
 - `<suffix>` is a BIDs suffix, either `T1w`, `T2w`, `dwi` or `bold`.
 
-The QC status files `sub-<subject>_ses-<session>_<entities>_qc.yaml` represent the evaluation of the data quality by a user, and are meant to be edited.
+The QC status files `sub-<subject>_ses-<session>_qc.yaml` represent the evaluation of the data quality by a user, and are meant to be edited.
 By default, quality validation is set to false for all generated reports, for example:
 
 ```yaml
-T1w_qc: False  # replace with True if quality of T1w is satisfying
-dwi_qc: False  # replace with True if quality of dwi is satisfying
-anat_template: sub-subject1_ses-session1_run-001  # template used for registration
+run-001_T1w: False  # replace with True if quality of T1w for run-001 is satisfying
+run-001_dwi: False  # replace with True if quality of dwi for run-001 is satisfying
+anat_template: sub-subject1_ses-session1_run-001  # T1w template used for registration
 ```
 
 *Note:
-The entry `anat_template` is only present if a T1w or T2w volume is available.
+The entry `anat_template` is only present if a T1w volume is available.
 It is meant to be used by other workflows to specify an alternative anatomical template for registration purpose (e.g. use another run).*
 
 

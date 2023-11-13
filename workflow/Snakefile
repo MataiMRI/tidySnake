@@ -28,49 +28,15 @@ def list_scans(root_folder, prefix):
 MAPPING = list_scans(config["datadir"], config["ethics_prefix"])
 SUBJECTS, SESSIONS = zip(*MAPPING)
 
-def qc_status_files(subject, session):
-
-    def input_function(wildcards):
-        # TODO document that run is a mandatory BIDS entity or handle when absent
-
-        # create a dependency on heudiconv rule output
-        checkpoints.heudiconv.get(
-            session=session, subject=subject, resultsdir=config["resultsdir"]
-        )
-
-        # find all entities (e.g. run and task) for a subject/session pair
-        bids_pattern = (
-            f"{config['resultsdir']}/bids/sub-{subject}/ses-{session}"
-            f"/anat/sub-{subject}_ses-{session}_{{entity}}_T1w.nii.gz"
-        )
-        found_wildcards = glob_wildcards(bids_pattern)
-
-        # keep only the run entity
-        runs = []
-        for entities in found_wildcards.entity:
-            entities_map = dict(entity.split("-") for entity in entities.split("_"))
-            runs.append(entities_map["run"])
-
-        # generate the list of QC status files
-        qc_files_pattern = (
-            f"{config['resultsdir']}/bids/derivatives/mriqc/"
-            f"sub-{subject}_ses-{session}_run-{{run}}_qc.yaml"
-        )
-        qc_files = expand(qc_files_pattern, run=runs)
-
-        return qc_files
-
-    return input_function
-
-QC_STATUS_FILES = [
-    qc_status_files(subject, session) for subject, session in zip(SUBJECTS, SESSIONS)
-]
-
 rule all:
     localrule: True
     input:
         f"{config['resultsdir']}/.mriqc_completed",
-        QC_STATUS_FILES
+        expand(
+            f"{config['resultsdir']}/bids/derivatives/mriqc/sub-{{subject}}_ses-{{session}}_qc.yaml",
+            subject=SUBJECTS,
+            session=SESSIONS
+        )
 
 rule unzip:
     input:
@@ -161,12 +127,12 @@ def get_run(wildcards):
 # TODO avoid shared file "dataset_description.json" (use shadow rule?)
 # TODO allow additional parameters
 # TODO increase verbosity to produce log files?
+# TODO track other output files (.json and figures)?
 rule mriqc:
     input:
         "{resultsdir}/bids/dataset_description.json",
         "{resultsdir}/bids/sub-{subject}/ses-{session}",
     output:
-        #"{resultsdir}/bids/derivatives/mriqc/sub-{subject}/ses-{session}/{modality}/sub-{subject}_ses-{session}_{entity}_{suffix}.json",
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_{suffix}.html"
     wildcard_constraints:
         suffix="T1w|T2w|bold|dwi"
@@ -194,6 +160,7 @@ rule mriqc:
         "--no-sub "
         "--work-dir {wildcards.resultsdir}/.mriqc_tmp"
 
+# TODO use a wildcard constrain instead? see if it works with glob_wildcards
 MRIQC_MODALITIES = ["T1w", "T2w", "bold", "dwi"]
 
 def find_modalities(subject, session, resultsdir):
@@ -217,22 +184,19 @@ def find_modalities(subject, session, resultsdir):
 
     return found_wildcards.entity, suffixes
 
-def mriqc_files_(subject, session, resultsdir):
+def mriqc_files(subject, session, resultsdir):
     """generate the list of MRIQC report files for a subject/session pair"""
-    # TODO check what happens for same run/task but other entities being different
-
     entities, suffixes = find_modalities(subject, session, resultsdir)
     mriqc_pattern = (
         f"{resultsdir}/bids/derivatives/mriqc/"
         f"sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.html"
     )
     mriqc_files = expand(mriqc_pattern, zip, entity=entities, suffix=suffixes)
-
     return mriqc_files
 
 def mriqc_files_all(wildcards):
     files = chain.from_iterable(
-        mriqc_files_(subject, session, wildcards.resultsdir)
+        mriqc_files(subject, session, wildcards.resultsdir)
         for subject, session in zip(SUBJECTS, SESSIONS)
     )
     return list(files)
@@ -246,17 +210,36 @@ rule mriqc_cleanup:
     shell:
         "rm -rf {wildcards.resultsdir}/.mriqc_tmp"
 
-def mriqc_files(wildcards):
-    return mriqc_files_(wildcards.subject, wildcards.session, wildcards.resultsdir)
+def find_anat_template(wildcards):
+    """find the first T1w run that can serve as anatomical template"""
+
+    entities, suffixes = find_modalities(
+        wildcards.subject, wildcards.session, wildcards.resultsdir
+    )
+    candidates = sorted(
+        entity for entity, suffix in zip(entities, suffixes) if suffix == "T1w"
+    )
+
+    if not candidates:
+        return None
+
+    return f"sub-{wildcards.subject}_ses-{wildcards.session}_{candidates[0]}"
 
 rule qc_status:
     localrule: True
     input:
-        mriqc_files,
+        lambda wildcards: mriqc_files(
+            wildcards.subject, wildcards.session, wildcards.resultsdir
+        ),
         template=workflow.source_path("templates/qc_status.yaml")
     output:
-        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_qc.yaml"
+        "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_qc.yaml"
     params:
-        suffixes=lambda wildcards: find_modalities(wildcards.subject, wildcards.session, wildcards.resultsdir)[1]
+        modalities=lambda wildcards: zip(
+            *find_modalities(
+                wildcards.subject, wildcards.session, wildcards.resultsdir
+            )
+        ),
+        anat_template=find_anat_template
     template_engine:
         "jinja2"

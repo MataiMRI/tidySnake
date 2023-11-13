@@ -1,6 +1,6 @@
-{% for suffix in params.suffixes -%}
-{{ suffix }}_qc: False  # replace with True if quality of {{ suffix }} is satisfying
+{% for entity, suffix in params.modalities -%}
+{{ entity }}_{{ suffix }}: False  # replace with True if quality of {{ suffix }} for {{ entity }} is satisfying
 {% endfor -%}
-{% if "T1w" in params.suffixes or "T2w" in params.suffixes -%}
-anat_template: sub-{{ wildcards.subject }}_ses-{{ wildcards.session }}_{{ wildcards.entity }}  # template used for registration
+{% if params.anat_template -%}
+anat_template: {{ params.anat_template }}  # T1w template used for registration
 {% endif %}
