@@ -159,9 +159,6 @@ rule mriqc:
         "--no-sub "
         "--work-dir {wildcards.resultsdir}/.mriqc_tmp"
 
-# TODO use a wildcard constrain instead? see if it works with glob_wildcards
-MRIQC_MODALITIES = ["T1w", "T2w", "bold", "dwi"]
-
 def find_modalities(subject, session, resultsdir):
     """find BIDS entities, including modalities, from BIDS data folder content"""
 
@@ -169,19 +166,13 @@ def find_modalities(subject, session, resultsdir):
     checkpoints.heudiconv.get(session=session, subject=subject, resultsdir=resultsdir)
 
     # find all entities (e.g. runs) and modalities for a subject/session pair
-    # TODO check what happens with multiple entities and one suffix
     bids_pattern = (
         f"{resultsdir}/bids/sub-{subject}/ses-{session}"
-        f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.nii.gz"
+        f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix,T1w|T2w|bold|dwi}}.nii.gz"
     )
     found_wildcards = glob_wildcards(bids_pattern)
 
-    # keep only modalities supported by MRIQC
-    suffixes = [
-        suffix for suffix in found_wildcards.suffix if suffix in MRIQC_MODALITIES
-    ]
-
-    return found_wildcards.entity, suffixes
+    return found_wildcards.entity, found_wildcards.suffix
 
 def mriqc_files(subject, session, resultsdir):
     """generate the list of MRIQC report files for a subject/session pair"""
