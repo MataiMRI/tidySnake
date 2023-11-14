@@ -171,17 +171,19 @@ def find_modalities(subject, session, resultsdir):
         f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix,T1w|T2w|bold|dwi}}.nii.gz"
     )
     found_wildcards = glob_wildcards(bids_pattern)
+    modalities = sorted(zip(found_wildcards.entity, found_wildcards.suffix))
 
-    return found_wildcards.entity, found_wildcards.suffix
+    return modalities
 
 def mriqc_files(subject, session, resultsdir):
     """generate the list of MRIQC report files for a subject/session pair"""
-    entities, suffixes = find_modalities(subject, session, resultsdir)
+    modalities = find_modalities(subject, session, resultsdir)
+    modalities_txt = [f"{entity}_{suffix}" for entity, suffix in modalities]
     mriqc_pattern = (
         f"{resultsdir}/bids/derivatives/mriqc/"
-        f"sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.html"
+        f"sub-{subject}_ses-{session}_{{modality}}.html"
     )
-    mriqc_files = expand(mriqc_pattern, zip, entity=entities, suffix=suffixes)
+    mriqc_files = expand(mriqc_pattern, modality=modalities_txt)
     return mriqc_files
 
 def mriqc_files_all(wildcards):
@@ -203,12 +205,10 @@ rule mriqc_cleanup:
 def find_anat_template(wildcards):
     """find the first T1w run that can serve as anatomical template"""
 
-    entities, suffixes = find_modalities(
+    modalities = find_modalities(
         wildcards.subject, wildcards.session, wildcards.resultsdir
     )
-    candidates = sorted(
-        entity for entity, suffix in zip(entities, suffixes) if suffix == "T1w"
-    )
+    candidates = sorted(entity for entity, suffix in modalities if suffix == "T1w")
 
     if not candidates:
         return None
@@ -225,10 +225,8 @@ rule qc_status:
     output:
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_qc.yaml"
     params:
-        modalities=lambda wildcards: zip(
-            *find_modalities(
-                wildcards.subject, wildcards.session, wildcards.resultsdir
-            )
+        modalities=lambda wildcards: find_modalities(
+            wildcards.subject, wildcards.session, wildcards.resultsdir
         ),
         anat_template=find_anat_template
     template_engine:
