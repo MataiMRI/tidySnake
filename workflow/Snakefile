@@ -213,7 +213,7 @@ def find_anat_template(wildcards):
     if not candidates:
         return None
 
-    return f"sub-{wildcards.subject}_ses-{wildcards.session}_{candidates[0]}_T1w"
+    return f"sub-{wildcards.subject}_ses-{wildcards.session}_{candidates[0]}"
 
 rule qc_status:
     localrule: True

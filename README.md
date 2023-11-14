@@ -112,9 +112,12 @@ The QC status files `sub-<subject>_ses-<session>_qc.yaml` represent the evaluati
 By default, quality validation is set to false for all generated reports, for example:
 
 ```yaml
-run-001_T1w: False  # replace with True if quality of T1w for run-001 is satisfying
-run-001_dwi: False  # replace with True if quality of dwi for run-001 is satisfying
-anat_template: sub-subject1_ses-session1_run-001  # T1w template used for registration
+# T1w anatomical template
+anat_template: sub-subject1_ses-session1_run-001
+
+# runs found for each modality, replace False value with True if quality is satisfying
+run-001_T1w: False
+run-001_dwi: False
 ```
 
 *Note:

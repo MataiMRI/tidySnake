@@ -1,5 +1,5 @@
 {% if params.anat_template -%}
-# anatomical template used for registration
+# T1w anatomical template
 anat_template: {{ params.anat_template }}
 
 {% endif -%}
