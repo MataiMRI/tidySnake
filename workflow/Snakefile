@@ -3,6 +3,8 @@ configfile: 'config/config.yaml'
 from pathlib import Path
 from itertools import chain
 
+from utils import list_valid_runs  # useful for workflows importing this one
+
 def list_scans(root_folder, prefix):
     mapping = {}
 
