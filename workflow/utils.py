@@ -19,6 +19,12 @@ class RunList:
         self.sessions.append(session)
         self.entities.append(entity)
 
+    def __len__(self):
+        return len(self.subjects)
+
+    def __iter__(self):
+        return zip(self.subjects, self.sessions, self.entities)
+
 
 def is_functional(entry: str) -> bool:
     """identify if an entry of the QC file is a functional run"""
