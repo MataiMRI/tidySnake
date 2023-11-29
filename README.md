@@ -104,7 +104,7 @@ where
 
 - `<resultsdir>` is the results directory configured in `config/config.yaml`
 - `<subject>` is a subject,
-- `<session>` is a subject's session,``
+- `<session>` is a subject's session,
 - `<modality>` is a modality (e.g. `anat` or `dwi`),
 - `<entities>` are BIDs entities (`task`, `run`, etc.),
 - `<suffix>` is a BIDs suffix, either `T1w`, `T2w`, `dwi` or `bold`.
