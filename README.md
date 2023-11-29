@@ -82,6 +82,7 @@ Once the workflow has completed, results are organised as follows:
     │       │       │   └── sub-<subject>_ses-<session>_<entities>_<suffix>.json
     │       │       └── ...
     │       ├── dataset_description.json
+    │       ├── quality_control.tsv
     │       ├── sub-<subject>_ses-<session>_qc.yaml
     │       ├── sub-<subject>_ses-<session>_<entities>_<suffix>.html
     │       └── ...
@@ -123,6 +124,10 @@ run-001_dwi: False
 *Note:
 The entry `anat_template` is only present if a T1w volume is available.
 It is meant to be used by other workflows to specify an alternative anatomical template for registration purpose (e.g. use another run).*
+
+The summary file `quality_control.tsv` aggregates all information from the individual QC status files.
+This should only be used as a summary view and not edited to trigger downstream workflows.
+Use the individual QC status files for that purpose.
 
 
 ## Workflow
