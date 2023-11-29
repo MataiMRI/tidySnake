@@ -3,6 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 import yaml
+import pandas as pd
 from snakemake.io import glob_wildcards
 
 
@@ -70,3 +71,29 @@ def list_valid_runs(
             runs.append(subject, session, entity)
 
     return runs, templates
+
+
+def summarise_qc(resultsdir: str) -> pd.DataFrame:
+    """aggregate QC information from all found QC files into one dataset"""
+
+    qc_file_pattern = (
+        f"{resultsdir}/bids/derivatives/mriqc/sub-{{subject}}_ses-{{session}}_qc.yaml"
+    )
+    subjects, sessions = glob_wildcards(qc_file_pattern)
+
+    runs = []
+    for subject, session in zip(subjects, sessions):
+        qc_file = Path(qc_file_pattern.format(subject=subject, session=session))
+        qc_data = yaml.safe_load(qc_file.read_text())
+
+        anat_template = qc_data.get("anat_template")
+        for entry in qc_data:
+            if entry == "anat_template":
+                continue
+            run = (subject, session, entry, qc_data[entry], anat_template)
+            runs.append(run)
+
+    dset = pd.DataFrame(
+        runs, columns=["subject", "session", "run", "qc", "anat_template"]
+    )
+    return dset

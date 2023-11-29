@@ -32,12 +32,7 @@ rule all:
     localrule: True
     input:
         f"{config['resultsdir']}/.mriqc_completed",
-        expand(
-            f"{config['resultsdir']}/bids/derivatives/mriqc/sub-{{subject}}_ses-{{session}}_qc.yaml",
-            zip,
-            subject=SUBJECTS,
-            session=SESSIONS
-        )
+        f"{config['resultsdir']}/bids/derivatives/mriqc/quality_control.tsv"
 
 rule unzip:
     input:
@@ -233,3 +228,18 @@ rule qc_status:
         anat_template=find_anat_template
     template_engine:
         "jinja2"
+
+rule qc_summary:
+    localrule: True
+    input:
+        expand(
+            "{{resultsdir}}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_qc.yaml",
+            zip,
+            subject=SUBJECTS,
+            session=SESSIONS
+        )
+    output:
+        "{resultsdir}/bids/derivatives/mriqc/quality_control.tsv"
+    run:
+        dset = summarise_qc(wildcards.resultsdir)
+        dset.to_csv(output[0], sep="\t", index=False)
