@@ -26,13 +26,15 @@ class RunList:
         return zip(self.subjects, self.sessions, self.entities)
 
 
-def is_functional(entry: str) -> bool:
-    """identify if an entry of the QC file is a functional run"""
-    return entry.endswith("_bold") or entry.endswith("_dwi")
+def list_valid_runs(
+    resultsdir: str, suffix: str
+) -> tuple[RunList, dict[str, dict[str, str]]]:
+    """list all valid runs from every subjects, based on QC status files
 
-
-def list_valid_runs(resultsdir: str) -> RunList:
-    """list all valid functional runs from every subjects, based on QC status files"""
+    :param resultsdir: folder containings a 'bids' folder with mriqc derivatives
+    :param suffix: suffix used to filter runs to return
+    :returns: list of valid runs and mapping of T1w templates for each subject/session
+    """
 
     qc_file_pattern = (
         f"{resultsdir}/bids/derivatives/mriqc/sub-{{subject}}_ses-{{session}}_qc.yaml"
@@ -50,7 +52,7 @@ def list_valid_runs(resultsdir: str) -> RunList:
         if "anat_template" not in qc_data:
             continue
 
-        # check that anatomy is valid, if from the same subject/session
+        # check that T1w is valid, if from the same subject/session
         anat_template = qc_data["anat_template"]
         if anat_template.startswith(f"sub-{subject}_ses-{session}"):
             anat_entry = anat_template.removeprefix(f"sub-{subject}_ses-{session}_")
@@ -59,9 +61,9 @@ def list_valid_runs(resultsdir: str) -> RunList:
 
         templates[subject][session] = anat_template
 
-        # list all valid functional runs
+        # list all valid runs
         for entry in qc_data:
-            if not is_functional(entry) or not qc_data[entry]:
+            if not entry.endswith(suffix) or not qc_data[entry]:
                 continue
 
             entity, _ = entry.rsplit("_", maxsplit=1)
