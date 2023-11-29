@@ -96,4 +96,6 @@ def summarise_qc(resultsdir: str) -> pd.DataFrame:
     dset = pd.DataFrame(
         runs, columns=["subject", "session", "run", "qc", "anat_template"]
     )
+    dset = dset.sort_values(["subject", "session", "run"])
+
     return dset
