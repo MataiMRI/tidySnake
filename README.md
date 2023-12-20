@@ -134,7 +134,10 @@ Use the individual QC status files for that purpose.
 
 The complete workflow consists of multiple steps depicted in the following graph.
 
-![](rulegraph.png)
+<figure>
+    <img src="rulegraph.png" />
+    <figcaption>Workflow graph generated with <code>snakemake --rulegraph | dot -Tpng > rulegraph.png</code>.</figcaption>
+</figure>
 
 The role of each step is the following:
 
