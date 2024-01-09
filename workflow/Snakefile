@@ -10,11 +10,16 @@ def list_scans(root_folder, prefix):
 
     for path in Path(root_folder).glob(f"{prefix}*"):
         if not path.is_dir() and not path.suffix == ".zip":
+            print(f"Ignoring {path} (not a folder or a .zip file).")
             continue
 
         infos = [s.lower() for s in path.stem.replace(prefix, "").split("_")]
         if len(infos) == 2:
             infos += ["a"]
+
+        if len(infos) != 3:
+            print(f"Ignoring {path} (wrong filename format).")
+            continue
 
         cohort, subject, session = infos
 
@@ -26,7 +31,12 @@ def list_scans(root_folder, prefix):
     return mapping
 
 MAPPING = list_scans(config["datadir"], config["ethics_prefix"])
-SUBJECTS, SESSIONS = zip(*MAPPING)
+if not MAPPING:
+    print(f"No subject/session pairs found from input folder {config['datadir']}.")
+    SUBJECTS = []
+    SESSIONS = []
+else:
+    SUBJECTS, SESSIONS = zip(*MAPPING)
 
 rule all:
     localrule: True
@@ -40,7 +50,7 @@ rule unzip:
     output:
         directory(f"{config['datadir']}/{{folder}}")
     wildcard_constraints:
-        folder="^((?!\.zip).)*$"  # avoid recursive .zip matching in folder name
+        folder="(.(?!\.zip))+"  # avoid recursive .zip matching in folder name
     shell:
         "unzip -q -d {output} {input}"
 
