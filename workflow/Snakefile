@@ -228,7 +228,7 @@ rule qc_status:
         lambda wildcards: mriqc_files(
             wildcards.subject, wildcards.session, wildcards.resultsdir
         ),
-        template=workflow.source_path("templates/qc_status.yaml")
+        template=ancient(workflow.source_path("templates/qc_status.yaml"))
     output:
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_qc.yaml"
     params:
