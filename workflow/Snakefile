@@ -131,7 +131,6 @@ def get_run(wildcards):
     return flag
 
 # TODO avoid shared file "dataset_description.json" (use shadow rule?)
-# TODO allow additional parameters
 # TODO increase verbosity to produce log files?
 # TODO track other output files (.json and figures)?
 rule mriqc:
@@ -164,7 +163,8 @@ rule mriqc:
         "{params.task} "
         "--nprocs {threads} "
         "--no-sub "
-        "--work-dir {wildcards.resultsdir}/.mriqc_tmp"
+        "--work-dir {wildcards.resultsdir}/.mriqc_tmp "
+        "config[mriqc][cli_args]"
 
 def find_modalities(subject, session, resultsdir):
     """find BIDS entities, including modalities, from BIDS data folder content"""

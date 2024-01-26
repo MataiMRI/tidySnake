@@ -12,3 +12,4 @@ mriqc:
     mem_mb: 16000
     time_min: 120
     threads: 8
+    cli_args: ""  # additioanl command line interface arguments, see https://mriqc.readthedocs.io/en/stable/running.html#command-line-interface
