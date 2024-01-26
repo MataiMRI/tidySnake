@@ -151,6 +151,7 @@ rule mriqc:
         mem_gb=int(config["mriqc"]["mem_mb"] / 1000),
         run=get_run,
         task=get_task,
+        cli_args=lambda _: config["mriqc"].get("cli_args", "")
     threads: config["mriqc"]["threads"]
     shell:
         "mriqc {wildcards.resultsdir}/bids {wildcards.resultsdir}/bids/derivatives/mriqc "
@@ -164,7 +165,7 @@ rule mriqc:
         "--nprocs {threads} "
         "--no-sub "
         "--work-dir {wildcards.resultsdir}/.mriqc_tmp "
-        "config[mriqc][cli_args]"
+        "{params.cli_args}"
 
 def find_modalities(subject, session, resultsdir):
     """find BIDS entities, including modalities, from BIDS data folder content"""
