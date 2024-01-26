@@ -24,7 +24,7 @@ Then copy the configuration file `config/config_example.yml` into `config/config
 
 ```
 cd tidySnake
-cp config/config_example.yml config/config.yaml
+cp config/config_example.yaml config/config.yaml
 ```
 
 and set the following entries:
