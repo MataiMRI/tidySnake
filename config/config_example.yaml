@@ -8,8 +8,14 @@ heudiconv:
     mem_mb: 4000
     time_min: 60
 
+# MRIQC options
+# modify cli_args to pass additional arguments to the tool
+# for example, use
+#   cli_args: "-vvv"
+# to increase the verbosity to debugging level
+# see https://mriqc.readthedocs.io/en/stable/running.html#command-line-interface for available arguments
 mriqc:
     mem_mb: 16000
     time_min: 120
     threads: 8
-    cli_args: ""  # additioanl command line interface arguments, see https://mriqc.readthedocs.io/en/stable/running.html#command-line-interface
+    cli_args: ""
