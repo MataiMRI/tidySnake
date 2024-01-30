@@ -2,6 +2,10 @@ ethics_prefix: "ETHICS_PREFIX_"  # TODO document
 datadir: "DICOM_FOLDER"  # TODO document
 resultsdir: "RESULTS_FOLDER"  # TODO document
 
+qc_status:
+    skip_mriqc: False  # if True, skip MRIQC reports generation, only make QC status files
+    default: False  # default value for entries in QC status files
+
 heudiconv:
     heuristic: "HEURISTIC_SCRIPT.py"  # TODO document
     threads: 2

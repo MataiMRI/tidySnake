@@ -5,5 +5,5 @@ anat_template: {{ params.anat_template }}
 {% endif -%}
 # runs found for each modality, replace False value with True if quality is satisfying
 {% for entity, suffix in params.modalities -%}
-{{ entity }}_{{ suffix }}: False
+{{ entity }}_{{ suffix }}: {{ params.qc_default_value }}
 {% endfor -%}
