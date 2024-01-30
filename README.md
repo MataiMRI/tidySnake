@@ -37,7 +37,8 @@ and set the following entries:
 You may want to edit other entries, in particular:
 
 - for each software, compute resources (time, memory and threads) can be adjusted,
-- for some software, additional command line arguments.
+- for some software, additional command line arguments (e.g. see `cli_args` entry under `mriqc` section),
+- entries in the `qc_status` section to skip `MRIQC` reports generation and set the default quality validation value.
 
 Once this configuration is finished, you can run `snakemake` to start the workflow.
 
