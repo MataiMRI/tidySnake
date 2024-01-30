@@ -223,12 +223,28 @@ def find_anat_template(wildcards):
 
     return f"sub-{wildcards.subject}_ses-{wildcards.session}_{candidates[0]}"
 
+def mriqc_files_or_skip(wildcards):
+    """list of MRIQC report files for a subject/session pair, or skip listing those"""
+
+    # create a dependency on heudiconv rule output
+    checkpoints.heudiconv.get(
+        session=wildcards.session,
+        subject=wildcards.subject,
+        resultsdir=wildcards.resultsdir
+    )
+
+    # skip MRIQC based on configuration
+    if config.get("skip_qc", False):
+        files = []
+    else:
+        files = mriqc_files(wildcards.subject, wildcards.session, wildcards.resultsdir)
+
+    return files
+
 rule qc_status:
     localrule: True
     input:
-        lambda wildcards: mriqc_files(
-            wildcards.subject, wildcards.session, wildcards.resultsdir
-        ),
+        mriqc_files_or_skip,
         template=workflow.source_path("templates/qc_status.yaml")
     output:
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_qc.yaml"
