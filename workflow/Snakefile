@@ -79,7 +79,7 @@ checkpoint heudiconv:
         directory("{resultsdir}/bids/sub-{subject}/ses-{session}"),
         directory("{resultsdir}/bids/.heudiconv/{subject}/ses-{session}")
     container:
-        "docker://nipy/heudiconv:1.1.0"
+        "docker://ghcr.io/mataimri/heudiconv:container_ci"
     threads: config["heudiconv"]["threads"]
     resources:
         cpus=lambda wildcards, threads: threads,
