@@ -85,6 +85,8 @@ checkpoint heudiconv:
         cpus=lambda wildcards, threads: threads,
         mem_mb=config["heudiconv"]["mem_mb"],
         runtime=config["heudiconv"]["time_min"]
+    params:
+        grouping=config["heudiconv"].get("grouping", "studyUID")
     shell:
         "heudiconv "
         "--dicom_dir_template '{wildcards.resultsdir}/tidy/sub_{{subject}}/ses_{{session}}/*/*' "
@@ -92,6 +94,7 @@ checkpoint heudiconv:
         "--heuristic {config[heudiconv][heuristic]} "
         "--subjects {wildcards.subject} "
         "--ses {wildcards.session} "
+        "--grouping {params.grouping} "
         "--converter dcm2niix "
         "--bids notop "
         "--overwrite"

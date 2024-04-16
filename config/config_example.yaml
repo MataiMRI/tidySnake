@@ -6,17 +6,21 @@ qc_status:
     skip_mriqc: False  # if True, skip MRIQC reports generation, only make QC status files
     default: False  # default value for entries in QC status files
 
+# HeuDiConv options
+# modify 'grouping' to modify how to group dicoms (default: by studyUID)
+# if using "custom", make sure to modify the heuristic file accordingly too
+# see https://heudiconv.readthedocs.io/en/latest/heuristics.html#grouping-string-or-grouping-files-dcmfilter-seqinfo
 heudiconv:
     heuristic: "HEURISTIC_SCRIPT.py"  # TODO document
     threads: 2
     mem_mb: 4000
     time_min: 60
+    # grouping: "custom"
 
 # MRIQC options
-# modify cli_args to pass additional arguments to the tool
-# for example, use
+# modify 'cli_args' to pass additional arguments to the tool
+# for example, increase the verbosity to debugging level using
 #   cli_args: "-vvv"
-# to increase the verbosity to debugging level
 # see https://mriqc.readthedocs.io/en/stable/running.html#command-line-interface for available arguments
 mriqc:
     mem_mb: 16000
