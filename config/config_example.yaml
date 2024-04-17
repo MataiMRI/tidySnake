@@ -1,6 +1,6 @@
-ethics_prefix: "ETHICS_PREFIX_"  # TODO document
-datadir: "DICOM_FOLDER"  # TODO document
-resultsdir: "RESULTS_FOLDER"  # TODO document
+ethics_prefix: "ETHICS_PREFIX_"  # prefix to dicom folders and .zip files to be selected
+datadir: "DICOM_FOLDER"  # input folders containing folders of dicoms
+resultsdir: "RESULTS_FOLDER"  # results folder for BIDS formatted data
 
 qc_status:
     skip_mriqc: False  # if True, skip MRIQC reports generation, only make QC status files
@@ -11,7 +11,7 @@ qc_status:
 # if using "custom", make sure to modify the heuristic file accordingly too
 # see https://heudiconv.readthedocs.io/en/latest/heuristics.html#grouping-string-or-grouping-files-dcmfilter-seqinfo
 heudiconv:
-    heuristic: "HEURISTIC_SCRIPT.py"  # TODO document
+    heuristic: "HEURISTIC_SCRIPT.py"  # replace this placeholder with your heuristic file
     threads: 2
     mem_mb: 4000
     time_min: 60
