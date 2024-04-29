@@ -171,16 +171,22 @@ Keep incomplete files (useful for debugging) from fail jobs, instead of wiping t
 snakemake --keep-incomplete
 ```
 
-Run the pipeline until a certain file or rule, e.g. the `bias_correction` rule:
+Run the pipeline until a certain file or rule, e.g. the `heudiconv` rule:
 
 ```
-snakemake --until bias_correction
+snakemake --until heudiconv
+```
+
+Run the pipeline using an alternative configuration file (default is `config/config.yaml`):
+
+```
+snakemake --configfile config/alternative_config.yaml
 ```
 
 All these options can be combined and used with a profile, for example:
 
 ```
-snakemake --profile profiles/local --keep-incomplete --until bias_correction
+snakemake --keep-incomplete --until bias_correction --configfile config/alternative_config.yaml
 ```
 
 Unlock the folder, in case `snakemake` had to be interrupted abruptly previously:

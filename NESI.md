@@ -67,11 +67,12 @@ sbatch --account=PROJECTID --time=04-00:00 profiles/nesi/snakemake.sl
 If you notice that your current job will run out of time, do not hesitate to send an email to support@nesi.org.nz to ask for an extension, providing the job ID of the workflow.
 
 
-### Running multiple workflows
+### Concurrent workflows
 
-You can only run one Snakemake workflow at a time (per project and user).
+If you use `sbatch` multiple times from the same workflow folder, executions of the workflow will generally fails except for the first one.
+This is normal, as Snakemake "locks" the folder to ensure that multiple workflow runs would not concurrently try to create the same files.
 
-If you use `sbatch` multiple times, the next execution of the workflow will only start once the current one has finished.
+You then have to either wait for the workflow to complete or cancel it (see *Job management* section) before resubmiting a new workflow.
 
 
 ### Snakemake options
@@ -97,10 +98,10 @@ To check the status of your Slurm job, use:
   squeue -j JOBID
   ```
 
-- or filtering your job list to find the job by its name
+- or display a list of all of your jobs
 
   ```
-  squeue --me -n tidy_snake
+  squeue --me
   ```
 
 If the job does not appear in the list, it means that it has completed.
@@ -111,13 +112,16 @@ Use the `sacct` command to check if this has been successful or if it ran into i
 sacct -j JOBID
 ```
 
-If you need to cancel the workflow, use the `scancel` command as follows:
+If you need to cancel the workflow, use the `scancel` command as follows **twice**:
 
 ```
 scancel --signal INT --full JOBID
 ```
 
-*Note: The options `--signal INT` and `--full` are very important to ensure all jobs related to this workflow are properly cancelled, not only the main Snakemake job.*
+and double-check that it has been properly canceled via the `squeue` command.
+
+*Note: The options `--signal INT` and `--full` are very important to ensure all jobs related to this workflow are properly cancelled, not only the main Snakemake job.
+Using this command once might not terminate the workflow but only related jobs, hence the need to run it twice.*
 
 Additionally, you can instruct Slurm to send you an email when the Slurm job changes states (start, end, failure...).
 Add the options `--mail-user` and `--mail-type` when submitting the job with `sbatch`:
