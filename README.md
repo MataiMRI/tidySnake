@@ -11,8 +11,10 @@ It is meant to handle DICOM to BIDs convertion as well as simple quality control
 To run this workflow on your workstation, you need to install the following softwares:
 
 - `apptainer`, a container system (see [installation instructions](https://apptainer.org/docs/admin/main/installation.html))
-- `snakemake`, the workflow management system (see [installation instructions](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html))
+- `snakemake` (version 7), the workflow management system (see [installation instructions](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html))
 - `git`, the distributed version control system (see [download page](https://git-scm.com/downloads))
+
+**Important:** This workflow has been developed for Snakemake version 7 and has not beed tested with Snakemake 8.
 
 Clone this repository using:
 
