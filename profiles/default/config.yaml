@@ -4,6 +4,6 @@ default-resources:
     - runtime=5
 printshellcmds: True
 use-singularity: True
-singularity-args: " --cleanenv"
+singularity-args: " --cleanenv --bind /media/jpmcgeown/PortableSSD/"
 keep-going: True
 rerun-incomplete: True
