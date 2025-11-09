@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#PBS -l wd
+set -euo pipefail
+module purge 2>/dev/null || true
+module load singularity
+
+# Fixed Singularity cache/tmp on project scratch (no templating needed)
+export SINGULARITY_CACHEDIR="/scratch/wn97/jm6887/singularity/cache"
+export SINGULARITY_TMPDIR="/scratch/wn97/jm6887/singularity/tmp"
+mkdir -p "/scratch/wn97/jm6887/singularity/cache" "/scratch/wn97/jm6887/singularity/tmp" || true
+
+{exec_job}
+

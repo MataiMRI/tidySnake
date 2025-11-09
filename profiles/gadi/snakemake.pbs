@@ -1,0 +1,49 @@
+# profiles/gadi/snakemake.pbs
+#!/usr/bin/env bash
+#PBS -P wn97
+#PBS -q normal
+#PBS -l ncpus=2,mem=4GB,walltime=04:00:00,jobfs=10GB
+#PBS -l wd
+#PBS -N tidySnake
+#PBS -j oe
+#PBS -o logs/
+
+set -euo pipefail
+mkdir -p logs
+
+module purge 2>/dev/null || true
+module load singularity
+module load python3/3.11.0
+source /scratch/wn97/software-tools/venvs/snakemake-9.7/bin/activate
+
+SFAST="${PBS_JOBFS:-/jobfs}"
+export SINGULARITY_CACHEDIR="${SFAST}/.singularity/cache"
+export SINGULARITY_TMPDIR="${SFAST}/.singularity/tmp"
+mkdir -p "$SINGULARITY_CACHEDIR" "$SINGULARITY_TMPDIR" || true
+
+ACCOUNT="${NCI_PROJECT:-wn97}"
+
+SUB='qsub -P wn97 -q normal -N tidySnake-{rule} \
+-l ncpus={threads},mem={resources.mem_mb}mb,walltime=00:{resources.runtime}:00 \
+-l wd -j oe -o logs/{rule}.{jobid}.out'
+
+snakemake \
+  --executor cluster-generic \
+  --cluster-generic-submit-cmd "$SUB" \
+  --cluster-generic-cancel-cmd 'qdel {jobid}' \
+  --jobscript profiles/gadi/jobscript.sh.j2 \
+  --shared-fs-usage sources software-deployment persistence storage-local-copies source-cache input-output \
+  --default-storage-provider none \
+  --not-retrieve-storage \
+  --default-resources queue=normalbw mem_mb=512 runtime=5 jobfs_flag=',jobfs=10gb' gpu_flag='' storage_flag='' \
+  --use-singularity \
+  --singularity-args " --cleanenv -B /scratch/wn97" \
+  --singularity-prefix "/scratch/wn97/jm6887/containers" \
+  --jobs 150 \
+  --printshellcmds --rerun-incomplete \
+  --config account="$ACCOUNT" \
+  ${SMK_ARGS:-} \
+  "$@"
+
+# --cluster-generic-status-cmd 'python3 /scratch/wn97/software-tools/tidySnake/profiles/gadi/pbs-status.py {jobid}'   
+

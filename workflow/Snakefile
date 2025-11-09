@@ -3,6 +3,8 @@ configfile: 'config/config.yaml'
 from pathlib import Path
 from itertools import chain
 
+from snakemake.io import touch
+
 include: "utils.py"  # useful for workflows importing this one
 
 def list_scans(root_folder, prefix):
@@ -64,9 +66,10 @@ rule tidy_dicoms:
     input:
         lambda wildards: MAPPING[(wildards.subject, wildards.session)]
     output:
-        temp(directory("{resultsdir}/tidy/sub_{subject}/ses_{session}"))
+        touch("{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready")
+#        temp(directory("{resultsdir}/tidy/sub_{subject}/ses_{session}")),
     run:
-        output_folder = Path(output[0])
+        output_folder = Path(output[0]).parent
         for dicom_file in Path(input[0]).rglob("*.dcm"):
             target_folder = output_folder / dicom_file.parent.name
             target_folder.mkdir(parents=True, exist_ok=True)
@@ -74,12 +77,13 @@ rule tidy_dicoms:
 
 checkpoint heudiconv:
     input:
-        "{resultsdir}/tidy/sub_{subject}/ses_{session}"
+#       "{resultsdir}/tidy/sub_{subject}/ses_{session}"
+       "{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready"
     output:
         directory("{resultsdir}/bids/sub-{subject}/ses-{session}"),
         directory("{resultsdir}/bids/.heudiconv/{subject}/ses-{session}")
-    container:
-        "docker://ghcr.io/mataimri/heudiconv:container_ci"
+    container: config['containers']['heudiconv']
+#        "docker://ghcr.io/mataimri/heudiconv:container_ci"
     threads: config["heudiconv"]["threads"]
     resources:
         cpus=lambda wildcards, threads: threads,
@@ -109,8 +113,8 @@ rule bids_template:
         )
     output:
         "{resultsdir}/bids/dataset_description.json"
-    container:
-        "docker://ghcr.io/mataimri/heudiconv:jpeg2000_ci"
+    container: config['containers']['heudiconv']
+#        "docker://ghcr.io/mataimri/heudiconv:jpeg2000_ci"
     shell:
         "heudiconv "
         "--files {wildcards.resultsdir}/bids "
@@ -144,8 +148,8 @@ rule mriqc:
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_{suffix}.html"
     wildcard_constraints:
         suffix="T1w|T2w|bold|dwi"
-    container:
-        "oras://docker.io/maximerio/mriqc:v1.0.0"
+    container: config['containers']['mriqc']
+        # "oras://docker.io/maximerio/mriqc:v1.0.0"
     resources:
         cpus=lambda wildcards, threads: threads,
         mem_mb=config["mriqc"]["mem_mb"],

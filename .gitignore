@@ -4,3 +4,6 @@
 .afni.log
 logs
 config/config.yaml
+config/fabh_heuristic.py
+config/heuristic.py
+config/__pycache__

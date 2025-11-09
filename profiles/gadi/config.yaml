@@ -1,0 +1,20 @@
+jobscript: "profiles/gadi/jobscript.sh.j2"
+
+default-resources:
+ - queue=normal
+ - mem_mb=512
+ - runtime=5
+
+jobs: 100
+max-jobs-per-second: 10
+max-status-checks-per-second: 10
+local-cores: 1
+latency-wait: 20
+restart-times: 0
+printshellcmds: True
+use-singularity: True
+singularity-args: " --cleanenv"
+singularity-prefix: "/scratch/wn97/software-tools/containers"
+keep-going: True
+rerun-incomplete: True
+jobscript: "profiles/gadi/jobscript.sh.j2"
