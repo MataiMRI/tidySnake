@@ -62,18 +62,62 @@ wildcard_constraints:
     # "ses-a_task-rest_run-001", session is "a" and entity is "task-rest_run-001"
     session="[^-]"
 
+# rule tidy_dicoms:
+#     input:
+#         lambda wildards: MAPPING[(wildards.subject, wildards.session)]
+#     output:
+#         touch("{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready")
+# #        temp(directory("{resultsdir}/tidy/sub_{subject}/ses_{session}")),
+#     run:
+#         output_folder = Path(output[0]).parent
+#         for dicom_file in Path(input[0]).rglob("*.dcm"):
+#             target_folder = output_folder / dicom_file.parent.name
+#             target_folder.mkdir(parents=True, exist_ok=True)
+#             (target_folder / dicom_file.name).symlink_to(dicom_file)
+
 rule tidy_dicoms:
     input:
-        lambda wildards: MAPPING[(wildards.subject, wildards.session)]
+        lambda wildcards: MAPPING[(wildcards.subject, wildcards.session)]
     output:
         touch("{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready")
-#        temp(directory("{resultsdir}/tidy/sub_{subject}/ses_{session}")),
     run:
+        from pathlib import Path
+
+        scanner = config.get("scanner", "ge").lower()
         output_folder = Path(output[0]).parent
-        for dicom_file in Path(input[0]).rglob("*.dcm"):
-            target_folder = output_folder / dicom_file.parent.name
+        in_root = Path(input[0])
+
+        for dicom_file in in_root.rglob("*.dcm"):
+
+            if scanner == "ge":
+                # Original GE behaviour: parent folder is the series
+                series_folder = dicom_file.parent.name
+
+            elif scanner == "siemens":
+                # Siemens export: series is the folder after ACQUISITIONS
+                parts = dicom_file.parts
+                if "ACQUISITIONS" in parts:
+                    i = parts.index("ACQUISITIONS")
+                    if i + 1 < len(parts):
+                        series_folder = parts[i + 1]
+                    else:
+                        series_folder = dicom_file.parent.name
+                else:
+                    # Fallback if layout is unexpected
+                    series_folder = dicom_file.parent.name
+
+            else:
+                raise ValueError(f"Unknown scanner type: {scanner}")
+
+            target_folder = output_folder / series_folder
             target_folder.mkdir(parents=True, exist_ok=True)
-            (target_folder / dicom_file.name).symlink_to(dicom_file)
+
+            dst = target_folder / dicom_file.name
+            if dst.exists() or dst.is_symlink():
+                continue
+
+            dst.symlink_to(dicom_file)
+
 
 checkpoint heudiconv:
     input:
@@ -147,7 +191,10 @@ rule mriqc:
     output:
         "{resultsdir}/bids/derivatives/mriqc/sub-{subject}_ses-{session}_{entity}_{suffix}.html"
     wildcard_constraints:
-        suffix="T1w|T2w|bold|dwi"
+        # suffix="T1w"
+        # suffix="T1w|T2w|bold|dwi"
+        # suffix=config['mriqc']['modalities']
+        suffix="|".join(config["mriqc"]["modalities"])
     container: config['containers']['mriqc']
         # "oras://docker.io/maximerio/mriqc:v1.0.0"
     resources:
@@ -174,19 +221,49 @@ rule mriqc:
         "--work-dir {wildcards.resultsdir}/.mriqc_tmp "
         "{params.cli_args}"
 
+# def find_modalities(subject, session, resultsdir):
+#     """find BIDS entities, including modalities, from BIDS data folder content"""
+
+#     # create a dependency on heudiconv rule output
+#     checkpoints.heudiconv.get(session=session, subject=subject, resultsdir=resultsdir)
+
+#     # find all entities (e.g. runs) and modalities for a subject/session pair
+#     bids_pattern = (
+#         f"{resultsdir}/bids/sub-{subject}/ses-{session}"
+#         f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.nii.gz"
+#     )
+#     found_wildcards = glob_wildcards(bids_pattern)
+#     modalities = sorted(zip(found_wildcards.entity, found_wildcards.suffix))
+
+#     return modalities
+
 def find_modalities(subject, session, resultsdir):
-    """find BIDS entities, including modalities, from BIDS data folder content"""
+    """Find BIDS entities and modalities for a subject/session,
+    constrained by mriqc.modalities in config.
+    """
 
     # create a dependency on heudiconv rule output
-    checkpoints.heudiconv.get(session=session, subject=subject, resultsdir=resultsdir)
+    checkpoints.heudiconv.get(
+        session=session,
+        subject=subject,
+        resultsdir=resultsdir
+    )
+
+    allowed = set(config["mriqc"]["modalities"])
 
     # find all entities (e.g. runs) and modalities for a subject/session pair
     bids_pattern = (
         f"{resultsdir}/bids/sub-{subject}/ses-{session}"
-        f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix,T1w|T2w|bold|dwi}}.nii.gz"
+        f"/{{modality}}/sub-{subject}_ses-{session}_{{entity}}_{{suffix}}.nii.gz"
     )
+
     found_wildcards = glob_wildcards(bids_pattern)
-    modalities = sorted(zip(found_wildcards.entity, found_wildcards.suffix))
+
+    modalities = sorted(
+        (entity, suffix)
+        for entity, suffix in zip(found_wildcards.entity, found_wildcards.suffix)
+        if suffix in allowed
+    )
 
     return modalities
 

@@ -1,9 +1,10 @@
-jobscript: "profiles/gadi/jobscript.sh.j2"
-
 default-resources:
  - queue=normal
  - mem_mb=512
  - runtime=5
+ - jobfs_flag='jobfs=10gb'
+ - gpu_flag=''
+ - storage_flag=''
 
 jobs: 100
 max-jobs-per-second: 10
@@ -12,9 +13,16 @@ local-cores: 1
 latency-wait: 20
 restart-times: 0
 printshellcmds: True
-use-singularity: True
-singularity-args: " --cleanenv"
-singularity-prefix: "/scratch/wn97/software-tools/containers"
-keep-going: True
 rerun-incomplete: True
+keep-going: True
+
 jobscript: "profiles/gadi/jobscript.sh.j2"
+executor: cluster-generic
+cluster-generic-cancel-cmd: 'qdel {jobid}'
+
+default-storage-provider: none
+not-retrieve-storage: True
+
+use-singularity: True
+singularity-args: " --cleanenv -B /scratch/wn97"
+singularity-prefix: "/g/data/wn97/software-tools/containers"
