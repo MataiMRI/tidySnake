@@ -2,10 +2,14 @@ configfile: 'config/config.yaml'
 
 from pathlib import Path
 from itertools import chain
-
+from bids import BIDSLayout
 from snakemake.io import touch
-
 include: "utils.py"  # useful for workflows importing this one
+
+RESULTS_DIR = config["resultsdir"].rstrip("/")
+BIDS_ROOT   = f"{RESULTS_DIR}/bids"
+USE_EXISTING_BIDS = config.get("use_existing_bids", False)
+print("USE_EXISTING_BIDS:", USE_EXISTING_BIDS)
 
 def list_scans(root_folder, prefix):
     mapping = {}
@@ -32,29 +36,48 @@ def list_scans(root_folder, prefix):
 
     return mapping
 
-MAPPING = list_scans(config["datadir"], config["ethics_prefix"])
-if not MAPPING:
-    print(f"No subject/session pairs found from input folder {config['datadir']}.")
-    SUBJECTS = []
-    SESSIONS = []
+def list_pairs_from_bids(bids_root, suffix="T1w"):
+    """
+    Return sorted list of (subject, session) pairs that have the given suffix.
+    Only includes sessioned data.
+    """
+    layout = BIDSLayout(bids_root, validate=False, derivatives=False)
+
+    pairs = set()
+    files = layout.get(suffix=suffix, extension=[".nii", ".nii.gz"])
+    for f in files:
+        ent = f.entities
+        sub = ent.get("subject")
+        ses = ent.get("session")
+        if sub and ses:
+            pairs.add((sub, ses))
+
+    return sorted(pairs)
+
+
+# MAPPING = list_scans(config["datadir"], config["ethics_prefix"])
+# if not MAPPING:
+#     print(f"No subject/session pairs found from input folder {config['datadir']}.")
+#     SUBJECTS = []
+#     SESSIONS = []
+# else:
+#     SUBJECTS, SESSIONS = zip(*MAPPING)
+
+if USE_EXISTING_BIDS:
+    pairs = list_pairs_from_bids(BIDS_ROOT, suffix="T1w")
+    if not pairs:
+        print(f"No subject/session pairs with T1w found in existing BIDS dir: {BIDS_ROOT}")
+        SUBJECTS, SESSIONS = [], []
+    else:
+        SUBJECTS, SESSIONS = zip(*pairs)
+
 else:
-    SUBJECTS, SESSIONS = zip(*MAPPING)
-
-rule all:
-    localrule: True
-    input:
-        f"{config['resultsdir']}/.mriqc_completed",
-        f"{config['resultsdir']}/bids/derivatives/mriqc/quality_control.tsv"
-
-rule unzip:
-    input:
-        f"{config['datadir']}/{{folder}}.zip"
-    output:
-        directory(f"{config['datadir']}/{{folder}}")
-    wildcard_constraints:
-        folder="(.(?!\.zip))+"  # avoid recursive .zip matching in folder name
-    shell:
-        "unzip -q -d {output} {input}"
+    MAPPING = list_scans(config["datadir"], config["ethics_prefix"])
+    if not MAPPING:
+        print(f"No subject/session pairs found from input folder {config['datadir']}.")
+        SUBJECTS, SESSIONS = [], []
+    else:
+        SUBJECTS, SESSIONS = zip(*MAPPING)
 
 wildcard_constraints:
     # Ensure proper matching in patterns containing "ses-{session}_{entity}",
@@ -62,90 +85,107 @@ wildcard_constraints:
     # "ses-a_task-rest_run-001", session is "a" and entity is "task-rest_run-001"
     session="[^-]"
 
-# rule tidy_dicoms:
-#     input:
-#         lambda wildards: MAPPING[(wildards.subject, wildards.session)]
-#     output:
-#         touch("{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready")
-# #        temp(directory("{resultsdir}/tidy/sub_{subject}/ses_{session}")),
-#     run:
-#         output_folder = Path(output[0]).parent
-#         for dicom_file in Path(input[0]).rglob("*.dcm"):
-#             target_folder = output_folder / dicom_file.parent.name
-#             target_folder.mkdir(parents=True, exist_ok=True)
-#             (target_folder / dicom_file.name).symlink_to(dicom_file)
-
-rule tidy_dicoms:
+rule all:
+    localrule: True
     input:
-        lambda wildcards: MAPPING[(wildcards.subject, wildcards.session)]
-    output:
-        touch("{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready")
-    run:
-        from pathlib import Path
+        f"{config['resultsdir']}/.mriqc_completed",
+        f"{config['resultsdir']}/bids/derivatives/mriqc/quality_control.tsv"
 
-        scanner = config.get("scanner", "ge").lower()
-        output_folder = Path(output[0]).parent
-        in_root = Path(input[0])
+if not USE_EXISTING_BIDS:
+    rule unzip:
+        input:
+            f"{config['datadir']}/{{folder}}.zip"
+        output:
+            directory(f"{config['datadir']}/{{folder}}")
+        wildcard_constraints:
+            folder="(.(?!\.zip))+"  # avoid recursive .zip matching in folder name
+        shell:
+            "unzip -q -d {output} {input}"
 
-        for dicom_file in in_root.rglob("*.dcm"):
+    # rule tidy_dicoms:
+    #     input:
+    #         lambda wildards: MAPPING[(wildards.subject, wildards.session)]
+    #     output:
+    #         touch("{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready")
+    # #        temp(directory("{resultsdir}/tidy/sub_{subject}/ses_{session}")),
+    #     run:
+    #         output_folder = Path(output[0]).parent
+    #         for dicom_file in Path(input[0]).rglob("*.dcm"):
+    #             target_folder = output_folder / dicom_file.parent.name
+    #             target_folder.mkdir(parents=True, exist_ok=True)
+    #             (target_folder / dicom_file.name).symlink_to(dicom_file)
 
-            if scanner == "ge":
-                # Original GE behaviour: parent folder is the series
-                series_folder = dicom_file.parent.name
+    rule tidy_dicoms:
+        input:
+            lambda wildcards: MAPPING[(wildcards.subject, wildcards.session)]
+        output:
+            touch("{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready")
+        run:
+            from pathlib import Path
 
-            elif scanner == "siemens":
-                # Siemens export: series is the folder after ACQUISITIONS
-                parts = dicom_file.parts
-                if "ACQUISITIONS" in parts:
-                    i = parts.index("ACQUISITIONS")
-                    if i + 1 < len(parts):
-                        series_folder = parts[i + 1]
-                    else:
-                        series_folder = dicom_file.parent.name
-                else:
-                    # Fallback if layout is unexpected
+            scanner = config.get("scanner", "ge").lower()
+            output_folder = Path(output[0]).parent
+            in_root = Path(input[0])
+
+            for dicom_file in in_root.rglob("*.dcm"):
+
+                if scanner == "ge":
+                    # Original GE behaviour: parent folder is the series
                     series_folder = dicom_file.parent.name
 
-            else:
-                raise ValueError(f"Unknown scanner type: {scanner}")
+                elif scanner == "siemens":
+                    # Siemens export: series is the folder after ACQUISITIONS
+                    parts = dicom_file.parts
+                    if "ACQUISITIONS" in parts:
+                        i = parts.index("ACQUISITIONS")
+                        if i + 1 < len(parts):
+                            series_folder = parts[i + 1]
+                        else:
+                            series_folder = dicom_file.parent.name
+                    else:
+                        # Fallback if layout is unexpected
+                        series_folder = dicom_file.parent.name
 
-            target_folder = output_folder / series_folder
-            target_folder.mkdir(parents=True, exist_ok=True)
+                else:
+                    raise ValueError(f"Unknown scanner type: {scanner}")
 
-            dst = target_folder / dicom_file.name
-            if dst.exists() or dst.is_symlink():
-                continue
+                target_folder = output_folder / series_folder
+                target_folder.mkdir(parents=True, exist_ok=True)
 
-            dst.symlink_to(dicom_file)
+                dst = target_folder / dicom_file.name
+                if dst.exists() or dst.is_symlink():
+                    continue
+
+                dst.symlink_to(dicom_file)
 
 
-checkpoint heudiconv:
-    input:
-#       "{resultsdir}/tidy/sub_{subject}/ses_{session}"
-       "{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready"
-    output:
-        directory("{resultsdir}/bids/sub-{subject}/ses-{session}"),
-        directory("{resultsdir}/bids/.heudiconv/{subject}/ses-{session}")
-    container: config['containers']['heudiconv']
-#        "docker://ghcr.io/mataimri/heudiconv:container_ci"
-    threads: config["heudiconv"]["threads"]
-    resources:
-        cpus=lambda wildcards, threads: threads,
-        mem_mb=config["heudiconv"]["mem_mb"],
-        runtime=config["heudiconv"]["time_min"]
-    params:
-        grouping=config["heudiconv"].get("grouping", "studyUID")
-    shell:
-        "heudiconv "
-        "--dicom_dir_template '{wildcards.resultsdir}/tidy/sub_{{subject}}/ses_{{session}}/*/*' "
-        "--outdir {wildcards.resultsdir}/bids "
-        "--heuristic {config[heudiconv][heuristic]} "
-        "--subjects {wildcards.subject} "
-        "--ses {wildcards.session} "
-        "--grouping {params.grouping} "
-        "--converter dcm2niix "
-        "--bids notop "
-        "--overwrite"
+    checkpoint heudiconv:
+        input:
+    #       "{resultsdir}/tidy/sub_{subject}/ses_{session}"
+        "{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready"
+        output:
+            directory("{resultsdir}/bids/sub-{subject}/ses-{session}"),
+            directory("{resultsdir}/bids/.heudiconv/{subject}/ses-{session}")
+        container: config['containers']['heudiconv']
+    #        "docker://ghcr.io/mataimri/heudiconv:container_ci"
+        threads: config["heudiconv"]["threads"]
+        resources:
+            cpus=lambda wildcards, threads: threads,
+            mem_mb=config["heudiconv"]["mem_mb"],
+            runtime=config["heudiconv"]["time_min"]
+        params:
+            grouping=config["heudiconv"].get("grouping", "studyUID")
+        shell:
+            "heudiconv "
+            "--dicom_dir_template '{wildcards.resultsdir}/tidy/sub_{{subject}}/ses_{{session}}/*/*' "
+            "--outdir {wildcards.resultsdir}/bids "
+            "--heuristic {config[heudiconv][heuristic]} "
+            "--subjects {wildcards.subject} "
+            "--ses {wildcards.session} "
+            "--grouping {params.grouping} "
+            "--converter dcm2niix "
+            "--bids notop "
+            "--overwrite"
 
 rule bids_template:
     input:
@@ -243,11 +283,18 @@ def find_modalities(subject, session, resultsdir):
     """
 
     # create a dependency on heudiconv rule output
-    checkpoints.heudiconv.get(
-        session=session,
-        subject=subject,
-        resultsdir=resultsdir
-    )
+    # checkpoints.heudiconv.get(
+    #     session=session,
+    #     subject=subject,
+    #     resultsdir=resultsdir
+    # )
+
+    if not USE_EXISTING_BIDS:
+        checkpoints.heudiconv.get(
+            session=session,
+            subject=subject,
+            resultsdir=resultsdir
+        )
 
     allowed = set(config["mriqc"]["modalities"])
 
@@ -310,12 +357,18 @@ def find_anat_template(wildcards):
 def mriqc_files_or_skip(wildcards):
     """list of MRIQC report files for a subject/session pair, or skip listing those"""
 
-    # create a dependency on heudiconv rule output
-    checkpoints.heudiconv.get(
-        session=wildcards.session,
-        subject=wildcards.subject,
-        resultsdir=wildcards.resultsdir
-    )
+    # # create a dependency on heudiconv rule output
+    # checkpoints.heudiconv.get(
+    #     session=wildcards.session,
+    #     subject=wildcards.subject,
+    #     resultsdir=wildcards.resultsdir
+    # )
+    if not USE_EXISTING_BIDS:
+        checkpoints.heudiconv.get(
+            session=wildcards.session,
+            subject=wildcards.subject,
+            resultsdir=wildcards.resultsdir
+        )
 
     # skip MRIQC based on configuration
     if config.get("qc_status", {}).get("skip_mriqc", False):

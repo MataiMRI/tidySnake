@@ -1,7 +1,7 @@
 default-resources:
  - queue=normal
- - mem_mb=512
- - runtime=5
+ - mem_mb=10000
+ - runtime=10
  - jobfs_flag='jobfs=10gb'
  - gpu_flag=''
  - storage_flag=''
@@ -15,6 +15,7 @@ restart-times: 0
 printshellcmds: True
 rerun-incomplete: True
 keep-going: True
+rerun-triggers: mtime
 
 jobscript: "profiles/gadi/jobscript.sh.j2"
 executor: cluster-generic
