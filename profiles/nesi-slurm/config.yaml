@@ -1,0 +1,41 @@
+executor: cluster-generic
+
+cluster-generic-submit-cmd: >-
+  sbatch
+  --parsable
+  --partition {resources.partition}
+  --account {config[account]}
+  --time {resources.runtime}
+  --mem {resources.mem_mb}
+  --cpus-per-task {resources.cpus}
+  --gpus-per-node {resources.gpu}
+  --output logs/%j-{rule}.out
+  --error logs/%j-{rule}.out
+  --job-name snakejob-{rule}
+  {resources.slurm_extra}
+
+cluster-generic-status-cmd: "slurm-status.py"
+cluster-generic-cancel-cmd: "scancel"
+cluster-generic-sidecar-cmd: "slurm-sidecar.py"
+
+default-resources:
+  - partition=genoa
+  - cpus=1
+  - gpu=0
+  - mem_mb=3500
+  - runtime=5
+  - slurm_extra=""
+
+jobs: 1000
+max-jobs-per-second: 10
+max-status-checks-per-second: 10
+local-cores: 1
+latency-wait: 20
+restart-times: 0
+printshellcmds: true
+keep-going: true
+rerun-incomplete: true
+rerun-triggers: mtime
+
+use-singularity: true
+singularity-args: " --cleanenv"
