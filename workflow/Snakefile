@@ -162,7 +162,7 @@ if not USE_EXISTING_BIDS:
     checkpoint heudiconv:
         input:
     #       "{resultsdir}/tidy/sub_{subject}/ses_{session}"
-        "{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready"
+            "{resultsdir}/tidy/sub_{subject}/ses_{session}/.ready"
         output:
             directory("{resultsdir}/bids/sub-{subject}/ses-{session}"),
             directory("{resultsdir}/bids/.heudiconv/{subject}/ses-{session}")
