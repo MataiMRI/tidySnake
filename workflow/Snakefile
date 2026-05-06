@@ -80,10 +80,26 @@ else:
         SUBJECTS, SESSIONS = zip(*MAPPING)
 
 wildcard_constraints:
-    # Ensure proper matching in patterns containing "ses-{session}_{entity}",
-    # where {entity} can contain multiple BIDS entities. For example, in
-    # "ses-a_task-rest_run-001", session is "a" and entity is "task-rest_run-001"
-    session="[^-]"
+    # Ensure proper matching in patterns containing:
+    #
+    #     "ses-{session}_{entity}"
+    #
+    # where {entity} may itself contain multiple BIDS entities
+    # such as task/run/acquisition labels.
+    #
+    # Examples:
+    #
+    #     ses-a_task-rest_run-001
+    #         session = "a"
+    #         entity  = "task-rest_run-001"
+    #
+    #     ses-pre_task-rest_run-001
+    #         session = "pre"
+    #         entity  = "task-rest_run-001"
+    #
+    # The constraint prevents the session wildcard from
+    # greedily consuming subsequent BIDS entities.
+    session = r"[^_/]+"
 
 rule all:
     localrule: True
